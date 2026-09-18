@@ -161,8 +161,9 @@ public class SupportChatService {
                 if (!userAccounts.isEmpty()) {
                     StringBuilder reply = new StringBuilder("Here are your current FIN account balance details:\n");
                     for (Account acc : userAccounts) {
-                        reply.append(String.format("• %s Account (A/C: %s): ₹%,.2f [%s]\n",
-                                acc.getAccountType(), acc.getAccountNumber(), acc.getBalance(), acc.getStatus()));
+                        String maskedAcc = maskAccountNumber(acc.getAccountNumber());
+                        reply.append(String.format("• %s Account (%s): ₹%,.2f [%s]\n",
+                                acc.getAccountType(), maskedAcc, acc.getBalance(), acc.getStatus()));
                     }
                     return reply.toString().trim();
                 }
@@ -204,6 +205,11 @@ public class SupportChatService {
         return "I couldn't find an exact match for that question. You can ask me about money transfers, card controls, bill payments, account balances, or statements, or check the quick topics below.";
     }
 
+    private String maskAccountNumber(String accNo) {
+        if (accNo == null || accNo.length() < 4) return "••••";
+        return "•••• " + accNo.substring(accNo.length() - 4);
+    }
+
     private String buildBankingGroundingContext(User user) {
         StringBuilder sb = new StringBuilder();
         if (user != null && accountRepository != null) {
@@ -212,12 +218,14 @@ public class SupportChatService {
             sb.append("- Username: @").append(user.getUsername()).append("\n");
             List<Account> accounts = accountRepository.findByUser(user);
             for (Account acc : accounts) {
-                sb.append(String.format("- %s Account (A/C: %s): Balance ₹%.2f | Status: %s\n",
-                        acc.getAccountType(), acc.getAccountNumber(), acc.getBalance(), acc.getStatus()));
+                String last4 = acc.getAccountNumber().substring(Math.max(0, acc.getAccountNumber().length() - 4));
+                sb.append(String.format("- %s Account (ending in %s): Available Balance ₹%.2f | Status: %s\n",
+                        acc.getAccountType(), last4, acc.getBalance(), acc.getStatus()));
             }
-            sb.append("\nInstructions for AI:\n")
-              .append("1. If the customer asks about their account balance, savings, or how much money they have, answer directly and accurately using the authenticated customer balance above.\n")
-              .append("2. If the customer asks to transfer money, pay bills, or modify limits, politely explain that for security reasons transactions cannot be executed directly through chat and guide them to the respective sidebar menu.\n\n");
+            sb.append("\nBanking Privacy & Compliance Rules:\n")
+              .append("1. If the customer asks about their balance, answer directly and concisely with their available balance.\n")
+              .append("2. Always refer to accounts by their masked suffix (e.g., 'ending in 6789') for privacy compliance.\n")
+              .append("3. Never attempt to execute transactions or money transfers through chat. Direct them to the Transfers section.\n\n");
         }
 
         sb.append("Verified FIN Banking Services & FAQs:\n");

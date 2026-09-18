@@ -175,7 +175,7 @@ public class AiChatService {
         Map<String, Object> requestPayload = Map.of(
                 "system_instruction", Map.of("parts", List.of(Map.of("text", systemPrompt))),
                 "contents", List.of(Map.of("parts", List.of(Map.of("text", userMessage)))),
-                "generationConfig", Map.of("temperature", 0.3, "maxOutputTokens", 300)
+                "generationConfig", Map.of("temperature", 0.3, "maxOutputTokens", 2048)
         );
 
         String jsonBody = objectMapper.writeValueAsString(requestPayload);
@@ -232,7 +232,7 @@ public class AiChatService {
                         Map.of("role", "user", "content", userMessage)
                 ),
                 "temperature", 0.3,
-                "max_tokens", 300
+                "max_tokens", 2048
         );
 
         String jsonBody = objectMapper.writeValueAsString(requestPayload);
