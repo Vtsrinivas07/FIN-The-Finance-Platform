@@ -27,7 +27,7 @@ app:
     provider: ${AI_PROVIDER:auto}
     gemini:
       api-key: ${GEMINI_API_KEY:}
-      model: ${GEMINI_MODEL:gemini-1.5-flash}
+      model: ${GEMINI_MODEL:gemini-3.5-flash}
     openai:
       api-key: ${OPENAI_API_KEY:}
       base-url: ${OPENAI_BASE_URL:https://api.openai.com/v1}

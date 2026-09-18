@@ -21,6 +21,7 @@ public class SupportChatService {
     private final SupportFAQRepository faqRepository;
     private final ChatSessionRepository chatSessionRepository;
     private final ChatMessageRepository chatMessageRepository;
+    private final com.bank.repository.AccountRepository accountRepository;
     private final AiChatService aiChatService;
 
     @Transactional(readOnly = true)
@@ -62,8 +63,8 @@ public class SupportChatService {
                 .build();
         chatMessageRepository.save(userMsg);
 
-        // Grounded deterministic FAQ matching
-        String botReply = generateGroundedAnswer(request.getMessage());
+        // Grounded intelligent answer generation
+        String botReply = generateGroundedAnswer(user, request.getMessage());
 
         // Save Bot Message
         ChatMessage botMsg = ChatMessage.builder()
@@ -97,7 +98,7 @@ public class SupportChatService {
                 .collect(Collectors.toList());
     }
 
-    private String generateGroundedAnswer(String query) {
+    private String generateGroundedAnswer(User user, String query) {
         if (query == null || query.trim().isEmpty()) {
             return "Hello! How can I assist you with your FIN account today?";
         }
@@ -136,10 +137,10 @@ public class SupportChatService {
             return "You can change your password securely by navigating to 'Settings' > 'Security' in your dashboard navigation.";
         }
 
-        // 6. Generative AI Engine (Google Gemini / OpenAI) if configured
+        // 6. Generative AI Engine (Google Gemini / OpenAI) with personalized grounding context
         if (aiChatService.isAiConfigured()) {
             try {
-                String bankingContext = buildBankingGroundingContext();
+                String bankingContext = buildBankingGroundingContext(user);
                 String aiAnswer = aiChatService.generateAiAnswer(raw, bankingContext);
                 if (aiAnswer != null && !aiAnswer.isBlank()) {
                     return aiAnswer;
@@ -149,10 +150,30 @@ public class SupportChatService {
             }
         }
 
-        // 7. Stop-words filter to prevent spurious substring matching
+        // 7. Local Grounded Balance Inquiry
+        boolean isBalanceInquiry = normalized.contains("balance") ||
+                (normalized.contains("how much") && (normalized.contains("account") || normalized.contains("savings") || normalized.contains("have") || normalized.contains("money"))) ||
+                normalized.equals("savings account") || normalized.equals("check balance") || normalized.equals("my balance");
+
+        if (isBalanceInquiry) {
+            if (user != null && accountRepository != null) {
+                List<Account> userAccounts = accountRepository.findByUser(user);
+                if (!userAccounts.isEmpty()) {
+                    StringBuilder reply = new StringBuilder("Here are your current FIN account balance details:\n");
+                    for (Account acc : userAccounts) {
+                        reply.append(String.format("• %s Account (A/C: %s): ₹%,.2f [%s]\n",
+                                acc.getAccountType(), acc.getAccountNumber(), acc.getBalance(), acc.getStatus()));
+                    }
+                    return reply.toString().trim();
+                }
+            }
+            return "To check your live savings account balance, please log in to your FIN customer account or view your dashboard balance card.";
+        }
+
+        // 8. Stop-words filter to prevent spurious substring matching
         Set<String> stopWords = Set.of(
                 "a", "about", "all", "an", "and", "are", "as", "at", "be", "by", "can", "do", "for",
-                "from", "get", "how", "i", "in", "is", "it", "me", "my", "of", "on", "or", "so",
+                "from", "get", "how", "i", "in", "is", "it", "me", "much", "my", "of", "on", "or", "so",
                 "that", "the", "this", "to", "what", "where", "which", "who", "why", "will", "with", "you", "your"
         );
 
@@ -160,7 +181,7 @@ public class SupportChatService {
                 .filter(t -> t.length() >= 3 && !stopWords.contains(t))
                 .toList();
 
-        // 7. Grounded FAQ Knowledge Search
+        // 9. Grounded FAQ Knowledge Search
         if (!substantiveTokens.isEmpty()) {
             // Try multi-word search first
             String substantiveQuery = String.join(" ", substantiveTokens);
@@ -180,11 +201,25 @@ public class SupportChatService {
             }
         }
 
-        return "I couldn't find an exact match for that question. You can ask me about money transfers, card controls, bill payments, or statements, or check the quick topics below.";
+        return "I couldn't find an exact match for that question. You can ask me about money transfers, card controls, bill payments, account balances, or statements, or check the quick topics below.";
     }
 
-    private String buildBankingGroundingContext() {
+    private String buildBankingGroundingContext(User user) {
         StringBuilder sb = new StringBuilder();
+        if (user != null && accountRepository != null) {
+            sb.append("Authenticated Customer Session:\n");
+            sb.append("- Customer Name: ").append(user.getFullName()).append("\n");
+            sb.append("- Username: @").append(user.getUsername()).append("\n");
+            List<Account> accounts = accountRepository.findByUser(user);
+            for (Account acc : accounts) {
+                sb.append(String.format("- %s Account (A/C: %s): Balance ₹%.2f | Status: %s\n",
+                        acc.getAccountType(), acc.getAccountNumber(), acc.getBalance(), acc.getStatus()));
+            }
+            sb.append("\nInstructions for AI:\n")
+              .append("1. If the customer asks about their account balance, savings, or how much money they have, answer directly and accurately using the authenticated customer balance above.\n")
+              .append("2. If the customer asks to transfer money, pay bills, or modify limits, politely explain that for security reasons transactions cannot be executed directly through chat and guide them to the respective sidebar menu.\n\n");
+        }
+
         sb.append("Verified FIN Banking Services & FAQs:\n");
         List<SupportFAQ> faqs = faqRepository.findAll();
         for (SupportFAQ faq : faqs) {
