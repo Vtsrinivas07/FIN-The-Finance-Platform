@@ -155,6 +155,27 @@ public class SupportChatService {
             return "For your protection, card numbers and CVVs are never shown in chat. You can view and manage your debit card securely in the 'Cards' tab.";
         }
 
+        // Financial Products & Services Knowledge (CIBIL, FDs, Loans, UPI, Wealth)
+        if (normalized.contains("cibil") || normalized.contains("credit score") || normalized.contains("credit rating") || normalized.contains("credit health")) {
+            return "Your CIBIL Score is tracked in real-time on your Dashboard under 'Grow, Borrow & Protect Your Wealth'. Your current score is 785 / 900 (Excellent Credit Health), placing you in the top 10% of borrowers in India. Over 7,000+ banks & financial institutions rely on CIBIL to approve loans and credit cards. You can view your full scorecard, payment track record, and factors by clicking 'View Credit Health Report' on your Dashboard.";
+        }
+
+        if (normalized.contains("fixed deposit") || normalized.contains("fd") || normalized.contains("term deposit") || (normalized.contains("interest") && (normalized.contains("rate") || normalized.contains("deposit")))) {
+            return "FIN offers high-yield Fixed Deposits with interest rates up to 7.25% p.a., compounded quarterly. All deposits are protected up to ₹5,00,000 under RBI DICGC insurance. Flexible tenures range from 1 to 5 years (including 5-year tax saving deposits). You can calculate returns and book an instant deposit from the Fixed Deposits card on your Dashboard.";
+        }
+
+        if (normalized.contains("loan") || normalized.contains("borrow") || normalized.contains("personal loan") || normalized.contains("pre approved") || normalized.contains("emi")) {
+            return "Eligible FIN customers have access to pre-approved Instant Personal Loans up to ₹5,00,000 at competitive rates starting from 10.49% p.a. The process is 100% digital with zero physical paperwork and disbursal to your savings account in under 60 seconds. You can review your customized EMI schedule on your Dashboard.";
+        }
+
+        if (normalized.contains("upi") || normalized.contains("phone number") || normalized.contains("vpa") || normalized.contains("gpay") || normalized.contains("phonepe") || normalized.contains("paytm") || normalized.contains("bhim")) {
+            return "FIN supports instant UPI payments and funding through any registered mobile number or UPI VPA (e.g., yourname@okaxis, yourname@okhdfcbank) via Google Pay, PhonePe, Paytm, or BHIM. To add funds via UPI, click 'Add Money' on your Dashboard and choose the Instant UPI option.";
+        }
+
+        if (normalized.contains("wealth") || normalized.contains("insurance") || normalized.contains("mutual fund") || normalized.contains("sip") || normalized.contains("life cover")) {
+            return "FIN provides direct access to zero-commission mutual fund SIPs (such as Nifty 50 Index), term life insurance up to ₹1 Crore, and comprehensive ₹10 Lakh health cover with zero co-pay, backed by SEBI and IRDAI regulated partners. Check the 'Wealth & Insurance' card on your Dashboard.";
+        }
+
         // 6. Generative AI Engine (Google Gemini / OpenAI) with privacy-sanitized grounding context
         if (aiChatService.isAiConfigured()) {
             try {
@@ -234,6 +255,8 @@ public class SupportChatService {
         }
         sb.append("\nApp Navigation Guide:\n")
           .append("- Dashboard: View account balances, recent ledger activity, and add funds.\n")
+          .append("- Financial Products Hub (Dashboard): CIBIL score (785/900 gauge chart), High-yield Fixed Deposits (7.25% p.a., DICGC insured), Instant Pre-Approved Personal Loans (up to ₹5L @ 10.49%), and Wealth & Insurance protection.\n")
+          .append("- UPI & Phone Transfers: Instant inter-bank funding via registered mobile number or UPI VPA.\n")
           .append("- Transfers: Send money to saved beneficiaries or new 12-digit account numbers with atomic double-entry bookkeeping.\n")
           .append("- Beneficiaries: Manage saved payees with IFSC and account numbers.\n")
           .append("- Bill Payments: Pay electricity, water, gas, internet bills, and recharge mobile/DTH subscriptions.\n")

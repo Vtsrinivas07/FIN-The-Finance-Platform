@@ -38,12 +38,6 @@ const Login = () => {
     }
   };
 
-  const handleQuickFill = (u, p) => {
-    setUsername(u);
-    setPassword(p);
-    setError('');
-  };
-
   return (
     <div className="min-h-screen bg-slate-950 flex flex-col justify-center py-12 sm:px-6 lg:px-8 relative overflow-hidden">
       {/* Subtle Background Glows */}
@@ -86,7 +80,7 @@ const Login = () => {
                   type="text"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  placeholder="e.g. demo"
+                  placeholder="Enter your username"
                   className="w-full pl-10 pr-4 py-2.5 bg-slate-800/80 border border-slate-700 text-white rounded-xl focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 text-sm placeholder-slate-500 transition"
                 />
               </div>
@@ -147,34 +141,6 @@ const Login = () => {
               )}
             </button>
           </form>
-
-          {/* Fast Switch / Test Profiles */}
-          <div className="mt-6 pt-5 border-t border-slate-800/80">
-            <div className="flex items-center justify-between mb-2.5">
-              <span className="text-[11px] font-semibold text-slate-400 tracking-wider uppercase">
-                Active Profiles
-              </span>
-              <span className="text-[10px] text-slate-400">Click to fill</span>
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                onClick={() => handleQuickFill('demo', 'Demo@12345')}
-                className="px-3 py-2 bg-slate-800/60 hover:bg-slate-800 border border-slate-700/60 rounded-xl text-left transition group"
-              >
-                <span className="block text-xs font-bold text-white group-hover:text-brand-400 transition">Customer</span>
-                <span className="block text-[10px] text-slate-400 font-mono">demo</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => handleQuickFill('admin', 'Admin@12345')}
-                className="px-3 py-2 bg-slate-800/60 hover:bg-slate-800 border border-slate-700/60 rounded-xl text-left transition group"
-              >
-                <span className="block text-xs font-bold text-white group-hover:text-brand-400 transition">Staff Admin</span>
-                <span className="block text-[10px] text-slate-400 font-mono">admin</span>
-              </button>
-            </div>
-          </div>
         </div>
 
         {/* Security & Registration Notice */}

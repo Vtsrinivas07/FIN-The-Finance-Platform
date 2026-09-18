@@ -3,12 +3,13 @@ import { MessageSquare, X, Send, Bot, User, Sparkles, HelpCircle } from 'lucide-
 import api from '../../services/api';
 
 const FAQ_CHIPS = [
+  "What is my CIBIL score?",
+  "Fixed Deposit 7.25% interest rates?",
+  "Pre-approved instant loan limit?",
+  "How to pay via UPI phone number?",
   "How do I transfer money?",
-  "How do I add a beneficiary?",
-  "My transaction failed",
   "How do I reset my password?",
-  "How do I pay a bill?",
-  "Where can I find my statement?",
+  "Where can I find my statement?"
 ];
 
 const SupportChatModal = () => {

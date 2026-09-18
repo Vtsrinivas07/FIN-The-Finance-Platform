@@ -15,8 +15,11 @@ import java.math.BigDecimal;
 @AllArgsConstructor
 public class TransferRequest {
 
-    @NotBlank(message = "Recipient account number is required")
     private String recipientAccountNumber;
+
+    private String recipientPhone;
+
+    private String paymentType; // ACCOUNT, UPI_PHONE, UPI_VPA
 
     @NotNull(message = "Transfer amount is required")
     @DecimalMin(value = "1.00", message = "Minimum transfer amount is ₹1.00")

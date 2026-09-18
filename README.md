@@ -1,452 +1,318 @@
-# FIN — Modern Digital Banking Platform
+<div align="center">
 
-> **Educational & Demonstration Notice:**  
-> **This is an educational/demo banking application and does not process real financial transactions.** All account balances, transactions, debit cards, utilities, and funds movements are simulated within a secure software environment.
+# 🏦 FIN - Digital Banking
 
----
+**A modern, full-stack digital banking platform built with Spring Boot & React**
 
-## 1. Project Overview
+![Spring Boot](https://img.shields.io/badge/Spring_Boot-3.3-6DB33F?style=for-the-badge&logo=springboot&logoColor=white)
+![React](https://img.shields.io/badge/React-19-61DAFB?style=for-the-badge&logo=react&logoColor=black)
+![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4.3-06B6D4?style=for-the-badge&logo=tailwindcss&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1?style=for-the-badge&logo=postgresql&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?style=for-the-badge&logo=docker&logoColor=white)
 
-**FIN** is an end-to-end, production-style digital banking platform designed to simulate modern retail fintech operations. Engineered with a **Spring Boot 3 (Java 20/21)** backend, **PostgreSQL / H2** persistence with strict double-entry ledger bookkeeping, and a responsive **React 18 + Vite + Tailwind CSS** frontend, the system delivers an authentic digital banking experience.
-
-Key features include simulated peer-to-peer transfers with ACID rollback guarantees, utility bill payments across 6 major sectors, prepaid mobile/DTH recharges, real-time card channel controls (freeze/unfreeze, online/contactless/international toggles), spending analytics, universal search (`Ctrl+K`), an unread-tracked notification center, a 24/7 grounded support FAQ chatbot, and an administrative governance console.
-
----
-
-## 2. Architecture Diagram
-
-```
-                                  ┌───────────────────────────┐
-                                  │      React 18 + Vite      │
-                                  │   (Tailwind CSS, Axios)   │
-                                  └─────────────┬─────────────┘
-                                                │ REST / JSON (Bearer JWT)
-                                                ▼
-┌─────────────────────────────────────────────────────────────────────────────────────────┐
-│                                 Spring Boot 3 Backend                                   │
-│                                                                                         │
-│  ┌───────────────────────┐   ┌────────────────────────┐   ┌──────────────────────────┐  │
-│  │  JwtAuthentication    │──▶│   REST Controllers     │──▶│     Service Layer        │  │
-│  │  Filter (Spring Sec 6)│   │ (Bean Validation, DTOs)│   │ (@Transactional, Ledger) │  │
-│  └───────────────────────┘   └────────────────────────┘   └────────────┬─────────────┘  │
-│                                                                        │                │
-│  ┌───────────────────────┐   ┌────────────────────────┐                ▼                │
-│  │ Global Exception      │   │   Swagger / OpenAPI    │   ┌──────────────────────────┐  │
-│  │ Handler (@Advice)     │   │   (Springdoc 2.5)      │   │    Spring Data JPA       │  │
-│  └───────────────────────┘   └────────────────────────┘   │    (14 Repositories)     │  │
-│                                                           └────────────┬─────────────┘  │
-└────────────────────────────────────────────────────────────────────────┼────────────────┘
-                                                                         │ SQL
-                                                                         ▼
-                                                            ┌───────────────────────────┐
-                                                            │   PostgreSQL / H2 Engine  │
-                                                            │  (Constraints, Auditing)  │
-                                                            └───────────────────────────┘
-```
+</div>
 
 ---
 
-## 3. Database ER Diagram
+## 📋 Overview
 
-```mermaid
-erDiagram
-    ROLE ||--o{ USER : "authorizes"
-    USER ||--o{ ACCOUNT : "owns"
-    USER ||--o{ BENEFICIARY : "manages"
-    USER ||--o{ NOTIFICATION : "receives"
-    USER ||--o{ AUDIT_LOG : "triggers"
-    USER ||--o{ CHAT_SESSION : "opens"
-    ACCOUNT ||--o{ TRANSACTION : "records"
-    ACCOUNT ||--o{ CARD : "issues"
-    BILL_PROVIDER ||--o{ RECHARGE_PLAN : "offers"
-    BILL_PROVIDER ||--o{ BILL : "bills"
-    CHAT_SESSION ||--o{ CHAT_MESSAGE : "contains"
+**FIN** is a production-grade digital banking platform that simulates a complete banking ecosystem — from customer-facing dashboards to administrative operations consoles. Built with a modern enterprise stack (Spring Boot 3 + React 19 + Tailwind CSS 4), it showcases clean architecture, JWT-based security, real-time analytics, and a premium banking UI inspired by HDFC, ICICI, and SBI digital experiences.
 
-    USER {
-        bigint id PK
-        string username UK
-        string password_hash
-        string full_name
-        string email UK
-        string mobile_number UK
-        string status
-        timestamp created_at
-    }
-
-    ACCOUNT {
-        bigint id PK
-        bigint user_id FK
-        string account_number UK
-        string account_type
-        decimal balance "CHECK >= 0"
-        string currency
-        string status
-    }
-
-    TRANSACTION {
-        uuid id PK
-        bigint account_id FK
-        string reference_number UK
-        decimal amount "CHECK > 0"
-        string type "DEBIT, CREDIT"
-        string category "TRANSFER, BILL_PAYMENT, RECHARGE, DEPOSIT"
-        string status "SUCCESS, PENDING, FAILED, REVERSED"
-        uuid related_transaction_id
-        timestamp created_at
-    }
-
-    BENEFICIARY {
-        bigint id PK
-        bigint user_id FK
-        string beneficiary_account_number
-        string beneficiary_name
-        string bank_name
-        string ifsc_code
-        string status
-    }
-
-    CARD {
-        bigint id PK
-        bigint account_id FK
-        string card_number_masked
-        decimal spending_limit
-        boolean is_frozen
-        boolean is_online_enabled
-        boolean is_contactless_enabled
-        boolean is_international_enabled
-    }
-
-    AUDIT_LOG {
-        bigint id PK
-        bigint user_id FK
-        string action
-        string entity_name
-        string entity_id
-        string status
-        string ip_address
-        text details
-        timestamp created_at
-    }
-```
+> **Note:** This application simulates banking operations. All balances, transactions, and financial products are processed within the application environment.
 
 ---
 
-## 4. Complete Feature List
+## ✨ Features
 
-### 4.1 Customer Features
-1. **Authentication & Profile Management**:
-   - Registration with 10-digit phone and regex-enforced password policy.
-   - Initial automatic account creation with **₹1,000.00 educational balance**.
-   - Profile information update (name, mobile, address) and secure password change.
-2. **Account Summary & Balance Hero**:
-   - Masked account display (`•••• 6789`) with one-click copy.
-   - Toggle eye button to conceal/reveal sensitive balance amounts.
-   - Instant simulated Cash Deposit top-up modal.
-3. **Simulated Fund Transfers**:
-   - Stepped transfer wizard (Input -> Review -> Authorize & Confirm).
-   - Beneficiary quick-picker carousel.
-   - Real-time balance and zero/negative amount validation.
-   - **Double-entry ledger update**: simultaneous atomic DEBIT for sender and CREDIT for recipient linked by `relatedTransactionId`.
-   - Confetti particle celebration on successful transfer.
-4. **Beneficiary Payee Directory**:
-   - Register payees with 12-digit account number, bank name, and IFSC code.
-   - De-duplication and self-transfer prevention guards.
-   - Search beneficiaries by name or account number with instant filter.
-5. **Utility Bill Payments & Recharges**:
-   - 6 Categories: Electricity, Water, Piped Gas, Broadband, Mobile, DTH.
-   - Pre-loaded operators with realistic recharge plans (e.g. Airtel, Jio, Vodafone, Tata Play, Dish TV).
-   - Instant deduction from primary balance with transaction receipt.
-6. **Smart Debit Card Management**:
-   - Realistic 3D-styled debit card visual mockup with EMV chip and contactless emblem.
-   - Instant card freeze/unfreeze toggle.
-   - Granular channel toggles: Online shopping, Contactless tap-to-pay, International usage.
-   - Dynamic spending limit slider (₹5,000 to ₹2,00,000).
-7. **Spending & Financial Analytics**:
-   - Total inflow (credits), outflow (debits), and net savings rate calculation.
-   - Category-wise expense distribution breakdown with visual progress meters.
-   - 3-Month cashflow trend comparative bars.
-8. **Universal Application Search (`Ctrl+K`)**:
-   - Global popover indexing quick actions, beneficiaries, bill categories, and support FAQs.
-9. **Notification Center**:
-   - Real-time badge counter tracking unread transfer receipts, alerts, and system updates.
-   - Mark individual notification as read or "Mark all read".
-10. **24/7 Grounded Support Chatbot**:
-    - Bottom-right floating trigger button (positioned above mobile navigation).
-    - Quick FAQ question chips for instantaneous answers.
-    - Grounded FAQ retrieval preventing hallucination and strictly blocking financial execution via chat.
+### 🏠 Customer Portal
 
-### 4.2 Admin Governance Console
-1. **Executive Metrics Overview**:
-   - Total registered customers, active bank accounts, transactions today, success/failure counts, and total simulated platform volume.
-2. **Customer Lifecycle Management**:
-   - Searchable table of all accounts with one-click **Suspend / Activate** toggle.
-3. **Transaction Monitor**:
-   - System-wide real-time transaction ledger.
-4. **Security Audit Stream**:
-   - Centralized audit trail recording all logins, transfers, bill settlements, profile updates, and admin overrides with IP addresses and entity references.
-
----
-
-## 5. Technology Stack
-
-| Layer | Technologies |
+| Feature | Description |
 |---|---|
-| **Backend Core** | Java 20/21, Spring Boot 3.3.3, Maven 3.9 |
-| **Security & Auth** | Spring Security 6, JJWT (0.12.5), BCrypt Password Encoder, Role-Based Access Control (RBAC) |
-| **Persistence & ORM** | Spring Data JPA, Hibernate 6.5, PostgreSQL 16 (Prod), H2 Database (Dev & Test) |
-| **API Documentation** | Springdoc OpenAPI 2.5, Swagger UI 3 |
-| **Validation & Utilities**| Jakarta Bean Validation (Hibernate Validator), Lombok, SLF4J |
-| **Frontend Framework** | React 18, Vite 5, JavaScript (ES2022) |
-| **Styling & Icons** | Tailwind CSS v4, PostCSS, Lucide React Icons |
-| **Routing & Networking** | React Router v6, Axios (with request/response interceptors) |
-| **Micro-Interactions** | Canvas Confetti |
-| **Testing** | JUnit 5, Mockito, Spring Boot Test |
-| **DevOps & Containers** | Docker, Docker Compose, Nginx Alpine, GitHub Actions CI |
+| **Account Dashboard** | Real-time balance display, income/expense summaries, spending category analytics, and recent transaction feed |
+| **UPI & Bank Transfers** | Send money via UPI (phone number lookup) or direct bank account transfers with 4-digit UPI PIN verification |
+| **Beneficiary Management** | Add, search, and manage saved payees — integrated directly within the Transfers module |
+| **Bill Payments** | Pay electricity, water, gas, broadband, DTH, and mobile recharge with real-time balance deduction |
+| **Debit & Credit Cards** | Virtual card display, freeze/unfreeze toggle, contactless/international/online shopping controls |
+| **Financial Products Hub** | CIBIL credit health report (785/900 gauge), Fixed Deposits (7.25% p.a. calculator), Pre-Approved Loans (₹5L instant disbursal), Wealth & SIPs, Insurance |
+| **Spending Analytics** | Monthly income vs expense breakdown, category-wise spend analysis |
+| **Transaction History** | Full ledger with filters by type (credit/debit), category, and date range |
+| **AI Chatbot** | 24/7 customer support powered by Google Gemini or OpenAI with grounded banking knowledge |
+| **KYC Verification** | Tier 3 Full KYC verification status with Aadhaar, PAN, and mobile verification |
+| **Deposit / Receive Money** | Add funds to savings account via multiple methods (UPI, NEFT, cash) |
+
+### 🔐 Admin Portal
+
+| Feature | Description |
+|---|---|
+| **Operations Hub** | Real-time KPIs — total customers, accounts, transaction volume, system revenue |
+| **Customer CIF Inquiry** | Search customers by Account Number, Username/CIF, Mobile, PAN, or Email — view full profile, accounts, cards, and transaction history |
+| **Clearing & AML Inquiry** | Look up any transaction by UTR/Reference, Account, or Username — complete audit trail |
+| **Security & Audit Trail** | System-wide security event log with chronological audit entries |
 
 ---
 
-## 6. Project Structure
+## 🛠️ Tech Stack
+
+| Layer | Technology |
+|---|---|
+| **Frontend** | React 19, Tailwind CSS 4, Vite 8, React Router 7, Lucide Icons, Axios |
+| **Backend** | Spring Boot 3.3, Spring Security, Spring Data JPA, JWT (JJWT 0.12.5) |
+| **Database** | H2 (development) / PostgreSQL 16 (production) |
+| **AI Chatbot** | Google Gemini API / OpenAI API (auto-fallback to local grounded matcher) |
+| **Containerization** | Docker & Docker Compose (multi-stage builds) |
+| **API Docs** | SpringDoc OpenAPI 3 (Swagger UI) |
+
+---
+
+## 🚀 Getting Started
+
+### Prerequisites
+
+- **Java 20+** (JDK)
+- **Maven 3.9+**
+- **Node.js 18+** & **npm 9+**
+- **PostgreSQL 14+** (for production) or use the embedded H2 database for local development
+- **Docker & Docker Compose** (optional, for containerized deployment)
+
+### Option 1: Local Development (H2 In-Memory Database)
+
+This is the fastest way to get up and running. No external database required.
+
+```bash
+# 1. Clone the repository
+git clone https://github.com/Vtsrinivas07/Online-Banking-System.git
+cd Online-Banking-System
+
+# 2. Start the Spring Boot Backend (uses H2 by default)
+cd backend
+mvn spring-boot:run
+# Backend starts at http://localhost:8080
+
+# 3. Start the React Frontend (in a new terminal)
+cd ../frontend
+npm install
+npm run dev
+# Frontend starts at http://localhost:5173
+```
+
+### Option 2: Local Development with PostgreSQL
+
+```bash
+# 1. Create a PostgreSQL database
+psql -U postgres -c "CREATE DATABASE bankdb;"
+
+# 2. Copy and configure environment variables
+cp .env.example .env
+# Edit .env with your PostgreSQL credentials
+
+# 3. Start the Backend with 'prod' profile
+cd backend
+mvn spring-boot:run -Dspring-boot.run.profiles=prod \
+  -Dspring-boot.run.arguments="--spring.datasource.url=jdbc:postgresql://localhost:5432/bankdb --spring.datasource.username=postgres --spring.datasource.password=YOUR_PASSWORD"
+
+# 4. Start the Frontend
+cd ../frontend
+npm install
+npm run dev
+```
+
+### Option 3: Docker Compose (Full Stack)
+
+```bash
+# 1. Clone and configure
+git clone https://github.com/Vtsrinivas07/Online-Banking-System.git
+cd Online-Banking-System
+cp .env.example .env
+# Edit .env if needed
+
+# 2. Build and start all services
+docker-compose up --build -d
+
+# Services:
+#   Frontend  → http://localhost:3000
+#   Backend   → http://localhost:8080
+#   PostgreSQL → localhost:5432
+```
+
+---
+
+## 🌐 Deployment Guide
+
+### Deploy Backend to Render (Free Tier)
+
+1. **Create a PostgreSQL Database** on [Render](https://render.com) or [Neon](https://neon.tech) or [Supabase](https://supabase.com):
+   - Copy the **External Database URL** (e.g., `jdbc:postgresql://host:5432/bankdb`)
+
+2. **Create a Web Service** on Render:
+   - Connect your GitHub repository
+   - **Root Directory:** `backend`
+   - **Build Command:** `mvn clean package -DskipTests`
+   - **Start Command:** `java -jar target/online-banking-backend-1.0.0.jar`
+   - **Environment Variables:**
+     ```
+     SPRING_PROFILES_ACTIVE=prod
+     SPRING_DATASOURCE_URL=jdbc:postgresql://<host>:5432/<db>
+     SPRING_DATASOURCE_USERNAME=<username>
+     SPRING_DATASOURCE_PASSWORD=<password>
+     APP_JWT_SECRET=<your-256-bit-hex-secret>
+     GEMINI_API_KEY=<your-gemini-api-key>  (optional)
+     ```
+
+### Deploy Frontend to Vercel / Netlify
+
+1. **Connect your GitHub repository**
+2. **Configuration:**
+   - **Root Directory:** `frontend`
+   - **Build Command:** `npm run build`
+   - **Output Directory:** `dist`
+   - **Environment Variable:**
+     ```
+     VITE_API_URL=https://your-backend-url.onrender.com/api
+     ```
+3. **Routing:** Add a redirect rule for SPA:
+   - **Vercel:** Create `frontend/vercel.json`:
+     ```json
+     { "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }] }
+     ```
+   - **Netlify:** Create `frontend/public/_redirects`:
+     ```
+     /* /index.html 200
+     ```
+
+### Deploy with Docker Compose (VPS / Cloud VM)
+
+```bash
+# On your server (Ubuntu/Debian)
+git clone https://github.com/Vtsrinivas07/Online-Banking-System.git
+cd Online-Banking-System
+
+# Configure environment
+cp .env.example .env
+nano .env  # Set production database credentials, JWT secret, API keys
+
+# Build and run
+docker-compose up --build -d
+
+# Your app is now running:
+#   Frontend → http://your-server-ip:3000
+#   Backend  → http://your-server-ip:8080
+```
+
+---
+
+## 📁 Project Structure
 
 ```
 Online-Banking-System/
-├── .github/
-│   └── workflows/
-│       └── ci.yml                   # Automated CI build & test pipeline
-├── backend/                         # Spring Boot 3 Backend
-│   ├── pom.xml                      # Maven project configuration
-│   ├── Dockerfile                   # Multi-stage production container build
+├── backend/                          # Spring Boot REST API
+│   ├── src/main/java/com/bank/
+│   │   ├── config/                   # Security, CORS, JWT configuration
+│   │   ├── controller/               # REST API endpoints
+│   │   ├── dto/                      # Request/Response DTOs
+│   │   ├── entity/                   # JPA entity models
+│   │   ├── repository/               # Spring Data repositories
+│   │   └── service/                  # Business logic services
+│   ├── src/main/resources/
+│   │   ├── application.yml           # Core configuration
+│   │   ├── application-dev.yml       # H2 development profile
+│   │   └── application-prod.yml      # PostgreSQL production profile
+│   ├── Dockerfile
+│   └── pom.xml
+│
+├── frontend/                         # React SPA
 │   ├── src/
-│   │   ├── main/
-│   │   │   ├── java/com/bank/
-│   │   │   │   ├── OnlineBankingApplication.java
-│   │   │   │   ├── config/          # Security, Web/CORS, Swagger OpenAPI
-│   │   │   │   ├── controller/      # REST API Controllers
-│   │   │   │   ├── dto/             # Request & Response DTOs
-│   │   │   │   ├── entity/          # JPA Entity definitions
-│   │   │   │   ├── exception/       # Centralized exception advice & custom errors
-│   │   │   │   ├── repository/      # Spring Data JPA interfaces
-│   │   │   │   ├── security/        # JWT Provider, Auth Filter, UserDetailsService
-│   │   │   │   └── service/         # Transactional business logic & seed loader
-│   │   │   └── resources/
-│   │   │       ├── application.yml
-│   │   │       ├── application-dev.yml
-│   │   │       └── application-prod.yml
-│   │   └── test/
-│   │       └── java/com/bank/       # Unit & Integration test suite
-│   │           ├── AuthServiceTest.java
-│   │           ├── TransferServiceTest.java
-│   │           └── OnlineBankingApplicationTests.java
-├── frontend/                        # React + Vite + Tailwind CSS Frontend
-│   ├── package.json
-│   ├── vite.config.js
+│   │   ├── components/               # Reusable UI components
+│   │   │   ├── common/               # CibilGaugeChart, SupportChat
+│   │   │   └── layout/               # Layout, Sidebar, Header
+│   │   ├── context/                  # AuthContext (JWT state)
+│   │   ├── pages/
+│   │   │   ├── auth/                 # Login, Register
+│   │   │   ├── customer/             # Dashboard, Transfers, Cards, etc.
+│   │   │   └── admin/                # AdminDashboard
+│   │   ├── services/                 # Axios API client
+│   │   └── App.jsx                   # Route definitions
 │   ├── Dockerfile
 │   ├── nginx.conf
-│   ├── index.html
-│   └── src/
-│       ├── components/
-│       │   ├── chatbot/             # SupportChatModal
-│       │   ├── common/              # SearchModal, Modals
-│       │   └── layout/              # Navbar, Sidebar, BottomNav, Layout
-│       ├── context/                 # AuthContext
-│       ├── pages/
-│       │   ├── auth/                # Login, Register
-│       │   ├── customer/            # Dashboard, Transfers, Beneficiaries, Bills, Cards, Analytics, History, Settings
-│       │   └── admin/               # AdminDashboard
-│       ├── services/                # Axios API client
-│       ├── App.jsx                  # Route definitions & guards
-│       ├── index.css                # Tailwind design system
-│       └── main.jsx
-├── legacy-desktop/                  # Preserved original Java Swing desktop codebase
-│   ├── controller/
-│   ├── data/
-│   ├── model/
-│   ├── util/
-│   ├── view/
-│   └── Main.java
-├── docker-compose.yml               # Multi-container orchestration
-├── README.md                        # Documentation & setup guide
-└── Goal.md                          # Master project specification
+│   └── package.json
+│
+├── docker-compose.yml                # Full-stack orchestration
+├── .env.example                      # Environment template
+└── README.md
 ```
 
 ---
 
-## 7. Complete API List
+## 🔑 API Documentation
 
-All API endpoints are interactive through Swagger UI at `http://localhost:8080/swagger-ui.html`.
+Once the backend is running, access the interactive Swagger UI:
 
-### 7.1 Authentication & Profile (`/api/auth`)
-- `POST /api/auth/register` — Register new customer account (includes ₹1,000 bonus).
-- `POST /api/auth/login` — Authenticate username/password; returns JWT token.
-- `GET /api/auth/me` — Retrieve current authenticated user profile.
-- `PUT /api/auth/profile` — Update personal identification details.
-- `POST /api/auth/change-password` — Verify existing credentials and update password.
-
-### 7.2 Accounts (`/api/accounts`)
-- `GET /api/accounts` — List all accounts owned by user.
-- `GET /api/accounts/primary` — Retrieve primary savings account.
-- `GET /api/accounts/{accountNumber}` — Fetch details for a specific account.
-- `POST /api/accounts/deposit` — Simulate cash deposit top-up.
-
-### 7.3 Transfers & Ledger (`/api/transfers`)
-- `POST /api/transfers` — Execute double-entry transfer between accounts.
-- `GET /api/transfers/recent` — Fetch 10 most recent transactions for dashboard.
-- `GET /api/transfers/history` — Paginated ledger query with type, category, status, and date filters.
-
-### 7.4 Beneficiaries (`/api/beneficiaries`)
-- `GET /api/beneficiaries` — List active payees.
-- `POST /api/beneficiaries` — Register a new payee.
-- `DELETE /api/beneficiaries/{id}` — Deactivate a payee.
-- `GET /api/beneficiaries/search?query=...` — Search payees by name or account.
-
-### 7.5 Utility Bills & Recharges (`/api/bills`)
-- `GET /api/bills/providers` — List all billers.
-- `GET /api/bills/providers/{category}` — Filter billers by sector (`ELECTRICITY`, `WATER`, etc.).
-- `GET /api/bills/plans/{providerId}` — Retrieve recharge plans for telecom/DTH provider.
-- `POST /api/bills/pay` — Settle utility bill.
-- `POST /api/bills/recharge` — Process mobile or DTH prepaid recharge.
-
-### 7.6 Debit Cards (`/api/cards`)
-- `GET /api/cards` — Retrieve user's cards with controls and limits.
-- `PATCH /api/cards/{id}/settings` — Toggle freeze, online, contactless, international, or update daily limit.
-
-### 7.7 Spending Analytics (`/api/analytics`)
-- `GET /api/analytics` — Cashflow totals, category distribution, and 3-month trends.
-
-### 7.8 Notification Center (`/api/notifications`)
-- `GET /api/notifications` — Retrieve notification history.
-- `GET /api/notifications/unread-count` — Count of unread alerts for badge.
-- `PATCH /api/notifications/{id}/read` — Mark notification as read.
-- `POST /api/notifications/read-all` — Mark all user notifications as read.
-
-### 7.9 Support & FAQ Chatbot (`/api/support`)
-- `GET /api/support/faqs` — Browse FAQ knowledge base.
-- `GET /api/support/faqs/search?query=...` — Keyword search across approved questions and answers.
-- `POST /api/support/chat` — Query grounded banking assistant.
-- `GET /api/support/chat/{sessionId}/messages` — Retrieve session history.
-
-### 7.10 Admin Portal (`/api/admin`) *(Requires `ROLE_ADMIN`)*
-- `GET /api/admin/metrics` — Aggregate system health and volume metrics.
-- `GET /api/admin/users` — Paginated customer directory.
-- `PATCH /api/admin/users/{userId}/toggle-status` — Toggle user Active/Suspended status.
-- `GET /api/admin/transactions` — Global transaction monitor.
-- `GET /api/admin/audit-logs` — Immutable security audit log stream.
-
----
-
-## 8. Setup & Running Instructions
-
-### 8.1 Prerequisites
-- **Java 20 or 21**
-- **Apache Maven 3.9+**
-- **Node.js 20+ & npm**
-- *(Optional for Containerized Run)* **Docker & Docker Compose**
-
-### 8.2 Option A: Local Development Run (Zero Database Setup Required)
-The application defaults to an embedded H2 database with automatic schema creation and demo data bootstrapping.
-
-1. **Start the Spring Boot Backend**:
-   ```bash
-   cd backend
-   mvn spring-boot:run
-   ```
-   *Backend runs at `http://localhost:8080`. Swagger documentation available at `http://localhost:8080/swagger-ui.html`.*
-
-2. **Start the React Frontend**:
-   ```bash
-   cd frontend
-   npm install
-   npm run dev
-   ```
-   *Frontend runs at `http://localhost:5173`.*
-
-3. **Pre-configured Demo Credentials**:
-   | Role | Username | Password | Notes |
-   |---|---|---|---|
-   | **Customer** | `demo` | `Demo@12345` | Account: `100123456789`, Balance: ₹15,000.00 |
-   | **Customer 2** | `sarah` | `Sarah@12345` | Account: `100987654321`, Balance: ₹8,500.00 |
-   | **Admin** | `admin` | `Admin@12345` | Grants access to `/admin` governance console |
-
-### 8.3 Option B: Docker Compose Run (Production PostgreSQL Profile)
-To launch all services (PostgreSQL + Spring Boot backend + React Nginx bundle) with a single command:
-
-```bash
-docker-compose up --build
 ```
-- Access Frontend at: `http://localhost:3000`
-- Access Backend API at: `http://localhost:8080`
-- PostgreSQL accessible at: `localhost:5432`
+http://localhost:8080/swagger-ui.html
+```
+
+### Key API Endpoints
+
+| Method | Endpoint | Description |
+|---|---|---|
+| `POST` | `/api/auth/login` | Authenticate and receive JWT token |
+| `POST` | `/api/auth/register` | Register a new customer account |
+| `GET` | `/api/accounts/primary` | Get primary account details |
+| `POST` | `/api/accounts/deposit` | Deposit funds into account |
+| `POST` | `/api/transactions/transfer` | Execute fund transfer |
+| `GET` | `/api/transactions/history` | Get transaction history |
+| `GET` | `/api/beneficiaries` | List saved beneficiaries |
+| `POST` | `/api/beneficiaries` | Add new beneficiary |
+| `GET` | `/api/cards` | Get linked debit/credit cards |
+| `POST` | `/api/bills/pay` | Pay a utility bill |
+| `POST` | `/api/support/chat` | AI chatbot conversation |
+| `GET` | `/api/admin/users` | Admin: List all customers |
+| `GET` | `/api/admin/transactions` | Admin: View all transactions |
 
 ---
 
-## 9. Automated Testing & Verification
+## ⚙️ Environment Variables
 
-Run the comprehensive unit and integration test suite:
+| Variable | Description | Default |
+|---|---|---|
+| `SPRING_PROFILES_ACTIVE` | `dev` (H2) or `prod` (PostgreSQL) | `dev` |
+| `SPRING_DATASOURCE_URL` | PostgreSQL JDBC URL | — |
+| `SPRING_DATASOURCE_USERNAME` | Database username | `postgres` |
+| `SPRING_DATASOURCE_PASSWORD` | Database password | `postgres` |
+| `APP_JWT_SECRET` | 256-bit hex secret for JWT signing | Built-in default |
+| `AI_PROVIDER` | AI chatbot provider (`auto`/`gemini`/`openai`) | `auto` |
+| `GEMINI_API_KEY` | Google Gemini API key | — |
+| `OPENAI_API_KEY` | OpenAI API key | — |
+| `VITE_API_URL` | Backend API URL for frontend | `http://localhost:8080/api` |
+
+---
+
+## 🧰 Development Commands
 
 ```bash
+# Backend
 cd backend
-mvn clean test
+mvn spring-boot:run              # Start dev server (H2)
+mvn clean package -DskipTests    # Build production JAR
+mvn test                         # Run unit tests
+
+# Frontend
+cd frontend
+npm run dev                      # Start Vite dev server
+npm run build                    # Production build
+npm run preview                  # Preview production build
+npm run lint                     # Run linter
 ```
 
-### Test Coverage Summary:
-- `AuthServiceTest`:
-  - `register_DuplicateUsername_ThrowsBadRequestException`: Validates uniqueness constraints on registration.
-  - `login_Successful_ReturnsToken`: Confirms password verification and signed JWT token issuance.
-- `TransferServiceTest`:
-  - `transferFunds_Successful`: Verifies double-entry ledger calculation, debiting sender and crediting recipient.
-  - `transferFunds_InsufficientBalance_ThrowsException`: Ensures atomic rollback when funds are insufficient.
-  - `transferFunds_ToSameAccount_ThrowsException`: Enforces business guard against self-transfers.
-- `OnlineBankingApplicationTests`:
-  - `contextLoads`: Verifies complete Spring Boot 3 context configuration, security filter chains, and JPA repositories.
+---
+
+## 📄 License
+
+This project is licensed under the [MIT License](LICENSE).
 
 ---
 
-## 10. Security Checklist
+<div align="center">
 
-- [x] **No Plaintext Passwords**: Enforced BCrypt hashing with salt rounds.
-- [x] **Stateless JWT Tokens**: HMAC-SHA256 signature verification with configurable expiration.
-- [x] **Backend-Enforced Authorization**: Every sensitive operation verified at the service and security filter level (never trusting client state).
-- [x] **Monetary Precision**: All currency calculations use `BigDecimal` in Java and `DECIMAL(15, 2)` in PostgreSQL; floating-point types (`double`/`float`) strictly forbidden.
-- [x] **Double-Entry Ledger**: Every transfer writes matching, linked DEBIT and CREDIT records within an atomic `@Transactional` boundary.
-- [x] **Masked Data**: Sensitive card numbers and account numbers are masked before rendering in responses.
-- [x] **Audit Trail**: Sensitive actions (`LOGIN`, `TRANSFER_COMPLETED`, `BILL_PAYMENT`, `CARD_SETTINGS_UPDATED`) recorded in `audit_logs` without storing credentials.
-- [x] **Chatbot Guardrails**: Grounded FAQ retrieval strictly prohibits executing financial transactions or exposing confidential tokens via chat.
+**Built with ❤️ by [Srinivas Vuriti](https://github.com/Vtsrinivas07)**
 
----
-
-## 11. Resume-Ready Project Description
-
-> **FIN — Production-Grade Digital Banking Platform (Java Full-Stack)**  
-> *Technologies: Java 21, Spring Boot 3, Spring Security, JWT, PostgreSQL, Spring Data JPA, React 18, Vite, Tailwind CSS, Docker, JUnit 5*
-> - Engineered a full-stack digital banking application featuring double-entry ledger bookkeeping, peer-to-peer transfers, and utility bill settlements.
-> - Implemented stateless authentication using Spring Security 6 and JWT, with role-based access control (`ROLE_CUSTOMER`, `ROLE_ADMIN`) and BCrypt password encryption.
-> - Designed a resilient PostgreSQL relational schema enforcing ACID transactions, check constraints, foreign keys, and `BigDecimal` financial arithmetic.
-> - Developed a responsive React SPA with Tailwind CSS, offering debit card controls (freeze/unfreeze, limit sliders), cashflow analytics, universal `Ctrl+K` search, and unread notification tracking.
-> - Integrated an AI-ready, grounded FAQ chatbot with category chips and strict prompt-injection guardrails against unauthorized money movement.
-> - Automated build verification with a multi-stage Docker Compose setup and GitHub Actions CI pipeline with 100% passing test coverage.
-
----
-
-## 12. Interview Talking Points
-
-- **Why Double-Entry Ledger Bookkeeping?**  
-  *In single-entry systems, balances can get out of sync if an operation fails midway. In FIN, peer transfers generate linked DEBIT and CREDIT transaction records inside an atomic `@Transactional` block, ensuring no money is created or destroyed.*
-- **Why BigDecimal Over Double?**  
-  *Floating-point numbers in Java (IEEE 754) suffer from rounding inaccuracies (e.g., `0.1 + 0.2 != 0.3`). In financial software, `BigDecimal` guarantees arbitrary-precision arithmetic.*
-- **Security in Depth:**  
-  *Authentication uses stateless JWTs validated on every request by `JwtAuthenticationFilter`. Sensitive endpoints like `/api/admin/**` enforce `@PreAuthorize("hasAuthority('ROLE_ADMIN')")`. Input validation leverages Jakarta Bean Validation annotations, preventing malformed payloads from reaching domain services.*
-- **Grounded Support Chatbot Architecture:**  
-  *Rather than relying on ungrounded external LLMs that could hallucinate banking policies, the support bot performs normalized keyword and category matching against approved knowledge base entities, explicitly disallowing financial operations through conversation.*
-
----
-
-## 13. Known Limitations & Future Improvements
-
-### Known Limitations
-- Educational demo scope: Money movement is simulated and does not connect to real central bank clearinghouses (NEFT/RTGS/UPI/ACH).
-- SMS/Email delivery: Notifications are delivered in-app rather than via external telecom SMS gateways or SMTP mail servers.
-
-### Future Improvements
-- Multi-factor authentication (TOTP 2FA via Google Authenticator).
-- Scheduled recurring transfers and standing instructions.
-- Real-time WebSocket streaming for instant balance updates across simultaneous browser sessions.
-- Open Banking PSD2-compliant read-only API connectors.
+</div>

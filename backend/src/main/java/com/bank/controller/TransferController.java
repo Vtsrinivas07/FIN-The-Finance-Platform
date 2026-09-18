@@ -38,6 +38,13 @@ public class TransferController {
         return ResponseEntity.ok(ApiResponse.success("Transfer completed successfully", response));
     }
 
+    @GetMapping("/lookup-upi-phone")
+    @Operation(summary = "Lookup recipient UPI details by phone number")
+    public ResponseEntity<ApiResponse<java.util.Map<String, Object>>> lookupUpiPhone(@RequestParam String phone) {
+        java.util.Map<String, Object> result = transferService.lookupUpiPhone(phone);
+        return ResponseEntity.ok(ApiResponse.success(result));
+    }
+
     @GetMapping("/recent")
     @Operation(summary = "Get recent transactions", description = "Retrieves the 10 most recent transactions for the dashboard")
     public ResponseEntity<ApiResponse<List<TransactionResponse>>> getRecentTransactions() {

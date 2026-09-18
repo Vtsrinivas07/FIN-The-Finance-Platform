@@ -30,9 +30,9 @@ const CUSTOMER_QUICK_ACTIONS = [
 
 const ADMIN_QUICK_ACTIONS = [
   { label: 'Operations Console Overview', path: '/admin', icon: LayoutDashboard, category: 'Operations' },
-  { label: 'Customer Accounts & Profiles', path: '/admin?tab=users', icon: Users, category: 'Governance' },
-  { label: 'Transaction Monitor & Feed', path: '/admin?tab=transactions', icon: ArrowLeftRight, category: 'Ledger Audit' },
-  { label: 'Security Audit Trail & Logs', path: '/admin?tab=audit', icon: ShieldAlert, category: 'Security' },
+  { label: 'Customer CIF & Account Inquiry', path: '/admin?tab=users', icon: Users, category: 'Governance' },
+  { label: 'Clearing & AML Transaction Inquiry', path: '/admin?tab=transactions', icon: ArrowLeftRight, category: 'Ledger Audit' },
+  { label: 'Security & Audit Trail Logs', path: '/admin?tab=audit', icon: ShieldAlert, category: 'Security' },
   { label: 'System & Security Settings', path: '/settings', icon: Settings, category: 'Configuration' },
 ];
 

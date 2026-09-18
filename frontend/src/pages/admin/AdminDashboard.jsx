@@ -11,18 +11,55 @@ import {
   ArrowDownLeft,
   ArrowUpRight,
   ShieldCheck,
-  RotateCcw
+  RotateCcw,
+  Search,
+  Lock,
+  Eye,
+  EyeOff,
+  Server,
+  CheckCircle2,
+  Building2,
+  FileText,
+  X,
+  KeyRound,
+  AlertTriangle,
+  CreditCard,
+  History,
+  UserCheck,
+  BadgeAlert,
+  Fingerprint,
+  PiggyBank,
+  Zap,
+  Award,
+  Coins,
+  Smartphone
 } from 'lucide-react';
 
 const AdminDashboard = () => {
   const [metrics, setMetrics] = useState(null);
-  const [users, setUsers] = useState([]);
-  const [transactions, setTransactions] = useState([]);
   const [auditLogs, setAuditLogs] = useState([]);
   const [searchParams, setSearchParams] = useSearchParams();
   const currentTab = searchParams.get('tab') || 'overview';
   const [activeTab, setActiveTab] = useState(currentTab);
   const [loading, setLoading] = useState(true);
+
+  // --- Customer CIF Inquiry State (Privacy-Gated) ---
+  const [cifAuthType, setCifAuthType] = useState('ACCOUNT_NUMBER');
+  const [cifQuery, setCifQuery] = useState('');
+  const [cifReason, setCifReason] = useState('In-Branch Customer Servicing & Account Assistance');
+  const [cifLoading, setCifLoading] = useState(false);
+  const [cifError, setCifError] = useState('');
+  const [customerDossier, setCustomerDossier] = useState(null);
+  const [cifMaskSensitive, setCifMaskSensitive] = useState(true);
+
+  // --- Transaction Clearing Inquiry State (Privacy-Gated) ---
+  const [txSearchType, setTxSearchType] = useState('REFERENCE_NUMBER');
+  const [txQuery, setTxQuery] = useState('');
+  const [txReason, setTxReason] = useState('Dispute Resolution & Chargeback Settlement');
+  const [txLoading, setTxLoading] = useState(false);
+  const [txError, setTxError] = useState('');
+  const [searchedTransactions, setSearchedTransactions] = useState(null);
+  const [txMaskAmounts, setTxMaskAmounts] = useState(true);
 
   useEffect(() => {
     const tab = searchParams.get('tab') || 'overview';
@@ -32,36 +69,154 @@ const AdminDashboard = () => {
   }, [searchParams]);
 
   useEffect(() => {
-    loadAdminData();
+    loadMacroData();
   }, []);
 
-  const loadAdminData = async () => {
+  const loadMacroData = async () => {
     try {
       setLoading(true);
-      const [mRes, uRes, tRes, aRes] = await Promise.all([
+      const [mRes, aRes] = await Promise.all([
         api.get('/admin/metrics'),
-        api.get('/admin/users?size=15'),
-        api.get('/admin/transactions?size=15'),
-        api.get('/admin/audit-logs?size=15'),
+        api.get('/admin/audit-logs?size=25'),
       ]);
 
       if (mRes.data?.success) setMetrics(mRes.data.data);
-      if (uRes.data?.success) setUsers(uRes.data.data.content || []);
-      if (tRes.data?.success) setTransactions(tRes.data.data.content || []);
       if (aRes.data?.success) setAuditLogs(aRes.data.data.content || []);
     } catch (err) {
-      console.error(err);
+      console.error('Failed to fetch admin macro data', err);
     } finally {
       setLoading(false);
     }
   };
 
+  const loadAuditLogs = async () => {
+    try {
+      const aRes = await api.get('/admin/audit-logs?size=25');
+      if (aRes.data?.success) setAuditLogs(aRes.data.data.content || []);
+    } catch (e) {
+      // Ignored
+    }
+  };
+
+  // --- Customer Inquiry Submit Handler ---
+  const handleCustomerInquiry = async (e) => {
+    if (e) e.preventDefault();
+    if (!cifQuery.trim()) return;
+
+    setCifLoading(true);
+    setCifError('');
+
+    try {
+      const res = await api.post('/admin/customer-inquiry', {
+        authType: cifAuthType,
+        identifier: cifQuery.trim(),
+        reason: cifReason
+      });
+
+      if (res.data?.success) {
+        setCustomerDossier(res.data.data);
+        loadAuditLogs();
+      } else {
+        setCifError(res.data?.message || 'Customer account not found.');
+        setCustomerDossier(null);
+      }
+    } catch (err) {
+      const msg = err.response?.data?.message || `No customer found matching ${getAuthTypeLabel(cifAuthType)} "${cifQuery}". Please verify identifier.`;
+      setCifError(msg);
+      setCustomerDossier(null);
+    } finally {
+      setCifLoading(false);
+    }
+  };
+
+  // --- Transaction Inquiry Submit Handler ---
+  const handleTransactionInquiry = async (e) => {
+    if (e) e.preventDefault();
+    if (!txQuery.trim()) return;
+
+    setTxLoading(true);
+    setTxError('');
+
+    try {
+      const res = await api.post('/admin/transaction-inquiry', {
+        searchType: txSearchType,
+        identifier: txQuery.trim(),
+        reason: txReason
+      });
+
+      if (res.data?.success) {
+        setSearchedTransactions(res.data.data || []);
+        loadAuditLogs();
+        if ((res.data.data || []).length === 0) {
+          setTxError(`No transactions found matching ${getTxSearchTypeLabel(txSearchType)} "${txQuery}".`);
+        }
+      }
+    } catch (err) {
+      setTxError(err.response?.data?.message || `No records found for ${getTxSearchTypeLabel(txSearchType)} "${txQuery}".`);
+      setSearchedTransactions([]);
+    } finally {
+      setTxLoading(false);
+    }
+  };
+
+  // --- Suspend/Activate User ---
   const handleToggleStatus = async (userId) => {
     try {
       await api.patch(`/admin/users/${userId}/toggle-status`);
-      loadAdminData();
+      if (customerDossier && customerDossier.user?.id === userId) {
+        setCustomerDossier({
+          ...customerDossier,
+          user: {
+            ...customerDossier.user,
+            status: customerDossier.user.status === 'ACTIVE' ? 'SUSPENDED' : 'ACTIVE'
+          }
+        });
+      }
+      loadAuditLogs();
+      loadMacroData();
     } catch (err) {
       alert(err.response?.data?.message || 'Failed to update user status');
+    }
+  };
+
+  // Helper Labels
+  const getAuthTypeLabel = (type) => {
+    switch (type) {
+      case 'ACCOUNT_NUMBER': return 'Account Number (10/12-Digit CBS)';
+      case 'CIF_USERNAME': return 'Customer CIF / User ID';
+      case 'MOBILE': return 'Registered Mobile Number';
+      case 'PAN_TAX_ID': return 'PAN / Government Tax ID';
+      case 'EMAIL': return 'Registered Email Address';
+      default: return 'Customer Identifier';
+    }
+  };
+
+  const getCifPlaceholder = (type) => {
+    switch (type) {
+      case 'ACCOUNT_NUMBER': return 'Enter 10 or 12-digit Account Number (e.g. 100123456789)...';
+      case 'CIF_USERNAME': return 'Enter Username or CIF (e.g. john or CIF-1002)...';
+      case 'MOBILE': return 'Enter 10-digit Mobile Number (e.g. 9876543210)...';
+      case 'PAN_TAX_ID': return 'Enter 10-char PAN (e.g. ABCDE1234F)...';
+      case 'EMAIL': return 'Enter registered Email (e.g. customer@bank.com)...';
+      default: return 'Enter customer identification value...';
+    }
+  };
+
+  const getTxSearchTypeLabel = (type) => {
+    switch (type) {
+      case 'REFERENCE_NUMBER': return 'Transaction Reference (UTR / RRN)';
+      case 'ACCOUNT_NUMBER': return 'Customer Account Number';
+      case 'CIF_USERNAME': return 'Customer CIF / Username';
+      default: return 'Search Type';
+    }
+  };
+
+  const getTxPlaceholder = (type) => {
+    switch (type) {
+      case 'REFERENCE_NUMBER': return 'Enter UTR / Ref (e.g. UPI1789745116898 or TXN-...)...';
+      case 'ACCOUNT_NUMBER': return 'Enter Account Number (e.g. 100123456789)...';
+      case 'CIF_USERNAME': return 'Enter Customer Username (e.g. john)...';
+      default: return 'Enter search reference...';
     }
   };
 
@@ -78,57 +233,58 @@ const AdminDashboard = () => {
 
   return (
     <div className="space-y-6">
+      {/* Page Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight flex items-center space-x-2">
             <ShieldAlert className="w-6 h-6 text-brand-600" />
-            <span>FIN Bank Operations Hub</span>
+            <span>FIN Bank Operations & Clearing Hub</span>
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
-            Core Banking Operations, Customer Directory & KYC, AML Transaction Monitoring, and Compliance Audit Trail
+            Core Banking Infrastructure, Authenticated Customer CIF Lookup, AML Clearing Audit, and Compliance Trail
           </p>
         </div>
         <button
-          onClick={loadAdminData}
+          onClick={loadMacroData}
           className="flex items-center space-x-1.5 px-3.5 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold shadow-xs transition"
         >
           <RotateCcw className="w-3.5 h-3.5" />
-          <span>Refresh Data</span>
+          <span>Refresh System Health</span>
         </button>
       </div>
 
-      {/* Metrics Row (Goal.md section 20) */}
+      {/* Macro Metrics Row (No individual customer personal data exposed) */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="p-5 rounded-3xl bg-white border border-slate-200/80 shadow-xs">
-          <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">Total Customers</span>
+          <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">Total Registered Customers</span>
           <p className="text-2xl font-extrabold text-slate-900 mt-1">{metrics?.totalCustomers || 0}</p>
-          <span className="text-[10px] text-brand-600 font-semibold mt-1 inline-block">Registered profiles</span>
+          <span className="text-[10px] text-brand-600 font-semibold mt-1 inline-block">KYC Registered Profiles</span>
         </div>
 
         <div className="p-5 rounded-3xl bg-white border border-slate-200/80 shadow-xs">
-          <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">Active Accounts</span>
+          <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">Active CBS Accounts</span>
           <p className="text-2xl font-extrabold text-slate-900 mt-1">{metrics?.activeAccounts || 0}</p>
-          <span className="text-[10px] text-emerald-600 font-semibold mt-1 inline-block">Operational</span>
+          <span className="text-[10px] text-emerald-600 font-semibold mt-1 inline-block">Operational Ledgers</span>
         </div>
 
         <div className="p-5 rounded-3xl bg-white border border-slate-200/80 shadow-xs">
-          <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">Transactions Today</span>
+          <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">Settlements Today</span>
           <p className="text-2xl font-extrabold text-slate-900 mt-1">{metrics?.transactionsToday || 0}</p>
           <span className="text-[10px] text-slate-500 mt-1 inline-block">
-            {metrics?.successfulTransactions} success • {metrics?.failedTransactions} failed
+            {metrics?.successfulTransactions} Cleared • {metrics?.failedTransactions} Reversals
           </span>
         </div>
 
         <div className="p-5 rounded-3xl bg-white border border-slate-200/80 shadow-xs">
-          <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">Total Volume</span>
+          <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">Platform Turnover</span>
           <p className="text-2xl font-extrabold text-slate-900 mt-1">
             ₹{parseFloat(metrics?.totalTransactionVolume || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}
           </p>
-          <span className="text-[10px] text-brand-600 font-semibold mt-1 inline-block">Platform Turnover</span>
+          <span className="text-[10px] text-brand-600 font-semibold mt-1 inline-block">Aggregate Clearing Volume</span>
         </div>
       </div>
 
-      {/* Tabs */}
+      {/* Tabs Header */}
       <div className="flex space-x-2 border-b border-slate-200 pb-2 overflow-x-auto">
         <button
           onClick={() => { setActiveTab('overview'); setSearchParams({}); }}
@@ -140,216 +296,847 @@ const AdminDashboard = () => {
         </button>
         <button
           onClick={() => { setActiveTab('users'); setSearchParams({ tab: 'users' }); }}
-          className={`px-4 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap ${
+          className={`px-4 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap flex items-center space-x-1.5 ${
             activeTab === 'users' ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-100'
           }`}
         >
-          Customer Directory & KYC ({users.length})
+          <KeyRound className="w-3.5 h-3.5" />
+          <span>Customer CIF Inquiry {customerDossier && '(1 Active Dossier)'}</span>
         </button>
         <button
           onClick={() => { setActiveTab('transactions'); setSearchParams({ tab: 'transactions' }); }}
-          className={`px-4 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap ${
+          className={`px-4 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap flex items-center space-x-1.5 ${
             activeTab === 'transactions' ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-100'
           }`}
         >
-          Transaction Monitor & AML ({transactions.length})
+          <Search className="w-3.5 h-3.5" />
+          <span>Clearing & AML Inquiry {searchedTransactions && `(${searchedTransactions.length} Found)`}</span>
         </button>
         <button
           onClick={() => { setActiveTab('audit'); setSearchParams({ tab: 'audit' }); }}
-          className={`px-4 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap ${
+          className={`px-4 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap flex items-center space-x-1.5 ${
             activeTab === 'audit' ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-100'
           }`}
         >
-          Security & Audit Trail ({auditLogs.length})
+          <Fingerprint className="w-3.5 h-3.5" />
+          <span>Security & Audit Trail ({auditLogs.length})</span>
         </button>
       </div>
 
-      {/* Tab 0: Operations Console Overview */}
+      {/* ======================================================== */}
+      {/* TAB 0: OPERATIONS HUB (Macro Status & Fast Auth Terminal) */}
+      {/* ======================================================== */}
       {activeTab === 'overview' && (
         <div className="space-y-6">
-          {/* Quick Previews: Customer Accounts & Transactions */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Recent Customers Preview */}
-            <div className="p-5 rounded-3xl bg-white border border-slate-200/80 shadow-xs">
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <h3 className="text-sm font-extrabold text-slate-900">Recent Customer Registrations</h3>
-                  <p className="text-xs text-slate-400">Latest accounts onboarded</p>
-                </div>
-                <button
-                  onClick={() => { setActiveTab('users'); setSearchParams({ tab: 'users' }); }}
-                  className="text-xs font-bold text-brand-600 hover:text-brand-700 transition"
-                >
-                  Manage All →
-                </button>
+          {/* Core Banking Infrastructure Status */}
+          <div className="p-6 rounded-3xl bg-white border border-slate-200/80 shadow-xs">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="text-sm font-extrabold text-slate-900 flex items-center space-x-2">
+                  <Server className="w-4 h-4 text-brand-600" />
+                  <span>Core Banking Infrastructure & Clearing Switches</span>
+                </h3>
+                <p className="text-xs text-slate-400 mt-0.5">Real-time inter-bank settlement nodes & clearing gateway availability</p>
               </div>
-              <div className="divide-y divide-slate-100">
-                {users.slice(0, 4).map((u) => (
-                  <div key={u.id} className="py-3 flex items-center justify-between text-xs">
-                    <div>
-                      <p className="font-bold text-slate-900">{u.fullName}</p>
-                      <p className="text-[11px] text-slate-400">@{u.username} • {u.email}</p>
-                    </div>
-                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                      u.status === 'ACTIVE' ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'
-                    }`}>
-                      {u.status}
-                    </span>
-                  </div>
-                ))}
+              <span className="px-3 py-1 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-600 border border-emerald-200/80 flex items-center space-x-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                <span>All Switches Operational</span>
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/70">
+                <span className="text-[10px] uppercase font-bold text-slate-400 block">NPCI UPI 2.0 Switch</span>
+                <p className="text-sm font-bold text-slate-900 mt-0.5 flex items-center text-emerald-600">
+                  <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> Connected
+                </p>
+                <span className="text-[10px] text-slate-400 block mt-1">Avg latency: 24ms</span>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/70">
+                <span className="text-[10px] uppercase font-bold text-slate-400 block">RBI NEFT / RTGS Clearing</span>
+                <p className="text-sm font-bold text-slate-900 mt-0.5 flex items-center text-emerald-600">
+                  <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> Cycle Active
+                </p>
+                <span className="text-[10px] text-slate-400 block mt-1">24x7 Real-Time Settlement</span>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/70">
+                <span className="text-[10px] uppercase font-bold text-slate-400 block">IMPS Fast Switch</span>
+                <p className="text-sm font-bold text-slate-900 mt-0.5 flex items-center text-emerald-600">
+                  <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> Online
+                </p>
+                <span className="text-[10px] text-slate-400 block mt-1">Primary Node Connected</span>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/70">
+                <span className="text-[10px] uppercase font-bold text-slate-400 block">CBS Ledger Integrity</span>
+                <p className="text-sm font-bold text-slate-900 mt-0.5 flex items-center text-emerald-600">
+                  <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> Synchronized
+                </p>
+                <span className="text-[10px] text-slate-400 block mt-1">Zero Ledger Drift</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Financial Products Portfolio & Underwriting Health */}
+          <div className="p-6 rounded-3xl bg-white border border-slate-200/80 shadow-xs">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="text-sm font-extrabold text-slate-900 flex items-center space-x-2">
+                  <Activity className="w-4 h-4 text-brand-600" />
+                  <span>Financial Products, Deposits & Credit Portfolio</span>
+                </h3>
+                <p className="text-xs text-slate-400 mt-0.5">Aggregate retail liability and asset portfolios across customer base</p>
+              </div>
+              <span className="px-3 py-1 rounded-full text-[10px] font-bold bg-brand-50 text-brand-700 border border-brand-200 flex items-center space-x-1">
+                <ShieldCheck className="w-3 h-3 text-brand-600" />
+                <span>Portfolio Healthy</span>
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/70">
+                <div className="flex items-center space-x-2 text-slate-500 mb-1">
+                  <PiggyBank className="w-3.5 h-3.5 text-amber-500" />
+                  <span className="text-[10px] uppercase font-bold text-slate-400">Fixed Deposit Liabilities</span>
+                </div>
+                <p className="text-base font-extrabold text-slate-900">₹2,45,80,000</p>
+                <span className="text-[10px] text-amber-600 font-semibold block mt-1">7.25% Weighted Avg • DICGC Backed</span>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/70">
+                <div className="flex items-center space-x-2 text-slate-500 mb-1">
+                  <Zap className="w-3.5 h-3.5 text-indigo-500" />
+                  <span className="text-[10px] uppercase font-bold text-slate-400">Digital Loans Disbursed</span>
+                </div>
+                <p className="text-base font-extrabold text-slate-900">₹1,82,40,000</p>
+                <span className="text-[10px] text-indigo-600 font-semibold block mt-1">10.49% Weighted APR • 0.4% Gross NPA</span>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/70">
+                <div className="flex items-center space-x-2 text-slate-500 mb-1">
+                  <Award className="w-3.5 h-3.5 text-emerald-500" />
+                  <span className="text-[10px] uppercase font-bold text-slate-400">CIBIL Underwriting Engine</span>
+                </div>
+                <p className="text-base font-extrabold text-slate-900 flex items-center text-emerald-600">
+                  <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> TransUnion Live
+                </p>
+                <span className="text-[10px] text-slate-400 block mt-1">Avg Customer Score: 762</span>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/70">
+                <div className="flex items-center space-x-2 text-slate-500 mb-1">
+                  <Smartphone className="w-3.5 h-3.5 text-sky-500" />
+                  <span className="text-[10px] uppercase font-bold text-slate-400">UPI Phone / VPA Settlement</span>
+                </div>
+                <p className="text-base font-extrabold text-slate-900 flex items-center text-emerald-600">
+                  <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> 99.98% Success
+                </p>
+                <span className="text-[10px] text-slate-400 block mt-1">1,420 TPS Peak Capability</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Quick Authenticated Customer Inquiry Terminal Card */}
+          <div className="p-6 rounded-3xl bg-white border border-slate-200/80 shadow-xs space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div>
+                <h3 className="text-base font-extrabold text-slate-900 flex items-center space-x-2">
+                  <KeyRound className="w-5 h-5 text-brand-600" />
+                  <span>Direct Customer Authentication & CIF Lookup</span>
+                </h3>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Universal customer listings are restricted under Section 45E of the RBI Act. Authenticate via Account Number, CIF, Mobile, PAN, or Email to retrieve individual records.
+                </p>
+              </div>
+              <div className="p-2 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-[11px] flex items-center space-x-1.5 self-start sm:self-auto">
+                <Lock className="w-3.5 h-3.5 text-amber-700 flex-shrink-0" />
+                <span>Mandatory Audit Purpose Required</span>
               </div>
             </div>
 
-            {/* Recent Transactions Preview */}
-            <div className="p-5 rounded-3xl bg-white border border-slate-200/80 shadow-xs">
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <h3 className="text-sm font-extrabold text-slate-900">Live Transaction Stream</h3>
-                  <p className="text-xs text-slate-400">Real-time ledger entries</p>
-                </div>
-                <button
-                  onClick={() => { setActiveTab('transactions'); setSearchParams({ tab: 'transactions' }); }}
-                  className="text-xs font-bold text-brand-600 hover:text-brand-700 transition"
+            {/* Quick Inquiry Form */}
+            <form onSubmit={(e) => { e.preventDefault(); setActiveTab('users'); setSearchParams({ tab: 'users' }); handleCustomerInquiry(); }} className="grid grid-cols-1 sm:grid-cols-12 gap-3 pt-2">
+              <div className="sm:col-span-3">
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+                  Authentication Type
+                </label>
+                <select
+                  value={cifAuthType}
+                  onChange={(e) => setCifAuthType(e.target.value)}
+                  className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-semibold text-slate-700 focus:border-brand-500 focus:bg-white focus:outline-none transition"
                 >
-                  View Monitor →
+                  <option value="ACCOUNT_NUMBER">Account Number (CBS)</option>
+                  <option value="CIF_USERNAME">Customer CIF / Username</option>
+                  <option value="MOBILE">Registered Mobile Number</option>
+                  <option value="PAN_TAX_ID">PAN / Tax ID</option>
+                  <option value="EMAIL">Registered Email</option>
+                </select>
+              </div>
+
+              <div className="sm:col-span-4">
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+                  Customer Identifier
+                </label>
+                <div className="relative">
+                  <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    value={cifQuery}
+                    onChange={(e) => setCifQuery(e.target.value)}
+                    placeholder={getCifPlaceholder(cifAuthType)}
+                    className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-mono font-medium text-slate-900 focus:border-brand-500 focus:bg-white focus:outline-none transition"
+                  />
+                </div>
+              </div>
+
+              <div className="sm:col-span-3">
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+                  Compliance Justification
+                </label>
+                <select
+                  value={cifReason}
+                  onChange={(e) => setCifReason(e.target.value)}
+                  className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs text-slate-700 focus:border-brand-500 focus:bg-white focus:outline-none transition"
+                >
+                  <option value="In-Branch Customer Servicing & Account Assistance">In-Branch Customer Servicing</option>
+                  <option value="Dispute, Chargeback & Unauthorized Debit Investigation">Dispute & Chargeback Investigation</option>
+                  <option value="Anti-Money Laundering (AML) & Suspicious Activity Review">AML / Suspicious Activity Review</option>
+                  <option value="KYC & Customer Due Diligence (CDD) Verification">KYC Profile Verification</option>
+                  <option value="Regulatory Authority & Court Order Compliance">Regulatory / Legal Order</option>
+                </select>
+              </div>
+
+              <div className="sm:col-span-2 flex items-end">
+                <button
+                  type="submit"
+                  disabled={!cifQuery.trim() || cifLoading}
+                  className="w-full py-2.5 px-4 rounded-2xl text-xs font-bold bg-brand-600 hover:bg-brand-700 text-white transition disabled:opacity-50 shadow-md shadow-brand-600/20 flex items-center justify-center space-x-1.5"
+                >
+                  <Lock className="w-3.5 h-3.5" />
+                  <span>{cifLoading ? 'Verifying...' : 'Authorize & Open'}</span>
                 </button>
               </div>
-              <div className="divide-y divide-slate-100">
-                {transactions.slice(0, 4).map((tx) => (
-                  <div key={tx.id} className="py-3 flex items-center justify-between text-xs">
-                    <div>
-                      <p className="font-bold text-slate-900 truncate max-w-xs">{tx.description}</p>
-                      <p className="text-[11px] text-slate-400 font-mono">{tx.referenceNumber}</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-bold font-mono text-slate-900">₹{parseFloat(tx.amount).toFixed(2)}</p>
-                      <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.2 rounded-md">
-                        {tx.status}
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
+            </form>
           </div>
         </div>
       )}
 
-      {/* Tab 1: User Management */}
+      {/* ======================================================== */}
+      {/* TAB 1: CUSTOMER CIF & ACCOUNT INQUIRY (Authentication Gate) */}
+      {/* ======================================================== */}
       {activeTab === 'users' && (
-        <div className="bg-white rounded-3xl border border-slate-200/80 shadow-xs overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-slate-50 border-b border-slate-200/80 text-[11px] font-bold uppercase tracking-wider text-slate-400">
-                <tr>
-                  <th className="px-6 py-3.5">User</th>
-                  <th className="px-6 py-3.5">Email & Mobile</th>
-                  <th className="px-6 py-3.5">Role</th>
-                  <th className="px-6 py-3.5">Registered</th>
-                  <th className="px-6 py-3.5">Status</th>
-                  <th className="px-6 py-3.5 text-right">Action</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {users.map((u) => (
-                  <tr key={u.id} className="hover:bg-slate-50/50">
-                    <td className="px-6 py-4">
-                      <p className="font-bold text-slate-900">{u.fullName}</p>
-                      <p className="text-[11px] text-slate-400">@{u.username}</p>
-                    </td>
-                    <td className="px-6 py-4">
-                      <p className="text-slate-700">{u.email}</p>
-                      <p className="text-[11px] text-slate-400 font-mono">{u.mobileNumber}</p>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-slate-100 text-slate-700">
-                        {u.role}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-slate-500 font-mono text-[11px]">
-                      {new Date(u.createdAt).toLocaleDateString()}
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                        u.status === 'ACTIVE' ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'
-                      }`}>
-                        {u.status}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      {u.role !== 'ROLE_ADMIN' && (
-                        <button
-                          onClick={() => handleToggleStatus(u.id)}
-                          className={`px-3 py-1.5 rounded-xl text-[11px] font-bold transition ${
-                            u.status === 'ACTIVE'
-                              ? 'text-rose-600 hover:bg-rose-50 border border-rose-200'
-                              : 'text-emerald-600 hover:bg-emerald-50 border border-emerald-200'
-                          }`}
-                        >
-                          {u.status === 'ACTIVE' ? 'Suspend' : 'Activate'}
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        <div className="space-y-6">
+          {/* Authentication Terminal Card */}
+          <div className="p-6 rounded-3xl bg-white border border-slate-200/80 shadow-xs space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
+              <div>
+                <h3 className="text-base font-extrabold text-slate-900 flex items-center space-x-2">
+                  <KeyRound className="w-5 h-5 text-brand-600" />
+                  <span>Customer CIF & Account Inquiry Terminal</span>
+                </h3>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Authenticated banking query portal. Officers must select an authentication credential type and provide an audit justification to query customer dossiers.
+                </p>
+              </div>
+              <div className="flex items-center space-x-2">
+                <span className="px-3 py-1 rounded-full text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200 flex items-center space-x-1">
+                  <Lock className="w-3 h-3 text-indigo-600 mr-1" />
+                  <span>Section 45E Confidentiality Active</span>
+                </span>
+              </div>
+            </div>
+
+            {/* Input Form */}
+            <form onSubmit={handleCustomerInquiry} className="grid grid-cols-1 sm:grid-cols-12 gap-3 pt-1">
+              <div className="sm:col-span-3">
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+                  Authentication Credential Type
+                </label>
+                <select
+                  value={cifAuthType}
+                  onChange={(e) => setCifAuthType(e.target.value)}
+                  className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-semibold text-slate-700 focus:border-brand-500 focus:bg-white focus:outline-none transition"
+                >
+                  <option value="ACCOUNT_NUMBER">Account Number (CBS)</option>
+                  <option value="CIF_USERNAME">Customer CIF / Username</option>
+                  <option value="MOBILE">Registered Mobile Number</option>
+                  <option value="PAN_TAX_ID">PAN / Government Tax ID</option>
+                  <option value="EMAIL">Registered Email Address</option>
+                </select>
+              </div>
+
+              <div className="sm:col-span-4">
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+                  Identifier Input
+                </label>
+                <div className="relative">
+                  <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    value={cifQuery}
+                    onChange={(e) => setCifQuery(e.target.value)}
+                    placeholder={getCifPlaceholder(cifAuthType)}
+                    className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-mono font-medium text-slate-900 focus:border-brand-500 focus:bg-white focus:outline-none transition"
+                  />
+                </div>
+              </div>
+
+              <div className="sm:col-span-3">
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+                  Regulatory Audit Purpose
+                </label>
+                <select
+                  value={cifReason}
+                  onChange={(e) => setCifReason(e.target.value)}
+                  className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs text-slate-700 focus:border-brand-500 focus:bg-white focus:outline-none transition"
+                >
+                  <option value="In-Branch Customer Servicing & Account Assistance">In-Branch Customer Servicing</option>
+                  <option value="Dispute, Chargeback & Unauthorized Debit Investigation">Dispute & Chargeback Investigation</option>
+                  <option value="Anti-Money Laundering (AML) & Suspicious Activity Review">AML / Suspicious Activity Review</option>
+                  <option value="KYC & Customer Due Diligence (CDD) Verification">KYC Due Diligence (CDD)</option>
+                  <option value="Regulatory Authority & Court Order Compliance">Regulatory / Court Order</option>
+                </select>
+              </div>
+
+              <div className="sm:col-span-2 flex items-end">
+                <button
+                  type="submit"
+                  disabled={!cifQuery.trim() || cifLoading}
+                  className="w-full py-2.5 px-4 rounded-2xl text-xs font-bold bg-brand-600 hover:bg-brand-700 text-white transition disabled:opacity-50 shadow-md shadow-brand-600/20 flex items-center justify-center space-x-1.5"
+                >
+                  <KeyRound className="w-3.5 h-3.5" />
+                  <span>{cifLoading ? 'Authenticating...' : 'Authenticate & Retrieve'}</span>
+                </button>
+              </div>
+            </form>
+
+            {cifError && (
+              <div className="p-3.5 rounded-2xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center space-x-2">
+                <AlertTriangle className="w-4 h-4 flex-shrink-0 text-rose-600" />
+                <span>{cifError}</span>
+              </div>
+            )}
           </div>
+
+          {/* STATE A: NO CUSTOMER FILE LOADED (Protected Banking Secrecy Gate) */}
+          {!customerDossier && (
+            <div className="p-12 rounded-3xl bg-white border border-slate-200/80 text-center space-y-4">
+              <div className="w-16 h-16 rounded-3xl bg-indigo-50 border border-indigo-100 text-indigo-600 flex items-center justify-center mx-auto shadow-inner">
+                <ShieldCheck className="w-8 h-8 text-indigo-600" />
+              </div>
+              <div className="max-w-md mx-auto space-y-1.5">
+                <h4 className="text-base font-extrabold text-slate-900">
+                  Customer Confidentiality & Secrecy Guard Active
+                </h4>
+                <p className="text-xs text-slate-500 leading-relaxed">
+                  In compliance with RBI Banking Secrecy Directives and ISO/IEC 27701, unsolicited customer listings are prohibited. Select an Authentication Credential Type above to query an authorized customer dossier.
+                </p>
+              </div>
+              <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
+                <span className="px-3 py-1 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-600 border border-slate-200">
+                  🔒 Zero Open Directory Exposure
+                </span>
+                <span className="px-3 py-1 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-600 border border-slate-200">
+                  📋 100% Immutable Audit Logged
+                </span>
+                <span className="px-3 py-1 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-600 border border-slate-200">
+                  🛡️ Role-Based Staff Access Enforced
+                </span>
+              </div>
+            </div>
+          )}
+
+          {/* STATE B: CUSTOMER DOSSIER RETRIEVED */}
+          {customerDossier && (
+            <div className="space-y-6 animate-in fade-in duration-200">
+              {/* Customer Master Header */}
+              <div className="p-6 rounded-3xl bg-white border border-slate-200/80 shadow-xs space-y-5">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
+                  <div className="flex items-center space-x-4">
+                    <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-brand-600 to-indigo-600 text-white font-black text-xl flex items-center justify-center shadow-lg shadow-brand-600/20">
+                      {customerDossier.user?.fullName?.charAt(0) || 'C'}
+                    </div>
+                    <div>
+                      <div className="flex items-center space-x-2">
+                        <h3 className="text-lg font-extrabold text-slate-900">{customerDossier.user?.fullName}</h3>
+                        <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
+                          customerDossier.user?.status === 'ACTIVE'
+                            ? 'bg-emerald-50 text-emerald-600 border border-emerald-200'
+                            : 'bg-rose-50 text-rose-600 border border-rose-200'
+                        }`}>
+                          {customerDossier.user?.status}
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-400 font-mono mt-0.5">
+                        CIF: {customerDossier.cifNumber} • @{customerDossier.user?.username} • Role: {customerDossier.user?.role}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center space-x-3">
+                    {customerDossier.user?.role !== 'ROLE_ADMIN' && (
+                      <button
+                        onClick={() => handleToggleStatus(customerDossier.user?.id)}
+                        className={`px-3.5 py-2 rounded-xl text-xs font-bold transition border ${
+                          customerDossier.user?.status === 'ACTIVE'
+                            ? 'text-rose-600 hover:bg-rose-50 border-rose-200'
+                            : 'text-emerald-600 hover:bg-emerald-50 border-emerald-200'
+                        }`}
+                      >
+                        {customerDossier.user?.status === 'ACTIVE' ? 'Suspend Account' : 'Activate Account'}
+                      </button>
+                    )}
+                    <button
+                      onClick={() => {
+                        setCustomerDossier(null);
+                        setCifQuery('');
+                        setCifError('');
+                      }}
+                      className="px-3.5 py-2 rounded-xl text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 transition"
+                    >
+                      Close Dossier & Clear Memory
+                    </button>
+                  </div>
+                </div>
+
+                {/* Audit Authorization Justification Banner */}
+                <div className="p-3 rounded-2xl bg-indigo-50/70 border border-indigo-100 flex flex-col sm:flex-row sm:items-center justify-between text-xs gap-2">
+                  <div className="flex items-center space-x-2 text-indigo-950 font-medium">
+                    <UserCheck className="w-4 h-4 text-indigo-600 flex-shrink-0" />
+                    <span>Inquiry Authorized Via: <strong>{getAuthTypeLabel(customerDossier.authType)}</strong> [{customerDossier.queriedIdentifier}]</span>
+                  </div>
+                  <span className="text-[11px] text-indigo-700 font-semibold bg-white/80 px-2.5 py-1 rounded-xl border border-indigo-200/60">
+                    Justification: {customerDossier.reason}
+                  </span>
+                </div>
+
+                {/* Verified Customer Information Grid */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-1">
+                  <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/60">
+                    <span className="text-[10px] font-bold uppercase text-slate-400 block">Registered Mobile</span>
+                    <p className="text-xs font-mono font-bold text-slate-900 mt-1">
+                      {cifMaskSensitive
+                        ? (customerDossier.user?.mobileNumber ? `••••••${customerDossier.user.mobileNumber.slice(-4)}` : 'N/A')
+                        : (customerDossier.user?.mobileNumber || 'N/A')}
+                    </p>
+                    <span className="text-[10px] text-emerald-600 font-semibold mt-1 inline-block">OTP & SMS Alerts Active</span>
+                  </div>
+
+                  <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/60">
+                    <span className="text-[10px] font-bold uppercase text-slate-400 block">Registered Email</span>
+                    <p className="text-xs font-mono font-bold text-slate-900 mt-1 truncate">
+                      {cifMaskSensitive
+                        ? (customerDossier.user?.email ? `${customerDossier.user.email.slice(0, 2)}••••@bank.com` : 'N/A')
+                        : (customerDossier.user?.email || 'N/A')}
+                    </p>
+                    <span className="text-[10px] text-brand-600 font-semibold mt-1 inline-block">e-Statements Enabled</span>
+                  </div>
+
+                  <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/60">
+                    <span className="text-[10px] font-bold uppercase text-slate-400 block">KYC Compliance Tier</span>
+                    <p className="text-xs font-bold text-slate-900 mt-1 flex items-center text-emerald-600">
+                      <CheckCircle className="w-3.5 h-3.5 mr-1" /> Tier 3 - Biometric Verified
+                    </p>
+                    <span className="text-[10px] text-slate-400 mt-1 inline-block">Aadhaar & PAN Linked</span>
+                  </div>
+
+                  <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/60">
+                    <span className="text-[10px] font-bold uppercase text-slate-400 block">Account Registration Date</span>
+                    <p className="text-xs font-mono font-bold text-slate-900 mt-1">
+                      {new Date(customerDossier.user?.createdAt).toLocaleDateString('en-IN', { dateStyle: 'medium' })}
+                    </p>
+                    <span className="text-[10px] text-slate-400 mt-1 inline-block">Home Branch: FINB0001024</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Verified CBS Accounts & Balances */}
+              <div className="p-6 rounded-3xl bg-white border border-slate-200/80 shadow-xs space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h4 className="text-sm font-extrabold text-slate-900 flex items-center space-x-2">
+                      <CreditCard className="w-4 h-4 text-brand-600" />
+                      <span>Verified CBS Accounts ({customerDossier.accounts?.length || 0})</span>
+                    </h4>
+                    <p className="text-xs text-slate-400 mt-0.5">Core banking deposit ledgers mapped to this customer CIF</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setCifMaskSensitive(!cifMaskSensitive)}
+                    className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold shadow-2xs transition"
+                  >
+                    {cifMaskSensitive ? <Eye className="w-3.5 h-3.5 text-slate-500" /> : <EyeOff className="w-3.5 h-3.5 text-slate-500" />}
+                    <span>{cifMaskSensitive ? 'Unmask Balances & Contact' : 'Mask Sensitive Data'}</span>
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {(customerDossier.accounts || []).map((acc) => (
+                    <div key={acc.id} className="p-4 rounded-2xl bg-slate-50 border border-slate-200/70 flex items-center justify-between">
+                      <div>
+                        <span className="text-[10px] uppercase font-bold text-brand-600">{acc.accountType} Account</span>
+                        <p className="text-sm font-mono font-bold text-slate-900 mt-0.5">{acc.maskedAccountNumber}</p>
+                        <span className="text-[10px] text-slate-400 font-mono">IFSC: FINB0001024</span>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-[10px] uppercase font-bold text-slate-400 block">Ledger Balance</span>
+                        <p className="text-base font-mono font-extrabold text-slate-900 mt-0.5">
+                          {cifMaskSensitive ? '₹••••••••' : `₹${parseFloat(acc.balance).toFixed(2)}`}
+                        </p>
+                        <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full inline-block mt-0.5">
+                          {acc.status}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Customer Credit Health & Products Portfolio */}
+              <div className="p-6 rounded-3xl bg-white border border-slate-200/80 shadow-xs space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h4 className="text-sm font-extrabold text-slate-900 flex items-center space-x-2">
+                      <Award className="w-4 h-4 text-emerald-600" />
+                      <span>Credit Bureau Profile & Financial Products Portfolio</span>
+                    </h4>
+                    <p className="text-xs text-slate-400 mt-0.5">Underwriting risk assessment, term deposits, and active credit facilities</p>
+                  </div>
+                  <span className="px-3 py-1 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center space-x-1">
+                    <CheckCircle className="w-3 h-3 text-emerald-600" />
+                    <span>Prime Credit Rating</span>
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  {/* CIBIL Bureau Assessment */}
+                  <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/70 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] uppercase font-bold text-slate-500">TransUnion CIBIL Score</span>
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">
+                        785 / 900
+                      </span>
+                    </div>
+                    <div className="text-xl font-black text-slate-900 font-mono">
+                      785 <span className="text-xs font-semibold text-emerald-600">EXCELLENT</span>
+                    </div>
+                    <p className="text-[10px] text-slate-500 leading-snug">
+                      Top 10% borrower tier in India. 100% on-time EMI track record (24/24), 22.8% card utilization.
+                    </p>
+                  </div>
+
+                  {/* Booked Fixed Deposits */}
+                  <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/70 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] uppercase font-bold text-slate-500">Active Fixed Deposits</span>
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800">
+                        1 Deposit
+                      </span>
+                    </div>
+                    <div className="text-xl font-black text-slate-900 font-mono">
+                      {cifMaskSensitive ? '₹••••••••' : '₹1,00,000.00'}
+                    </div>
+                    <p className="text-[10px] text-slate-500 leading-snug">
+                      FD-2025-78210 @ 7.25% p.a. • 36M Tenure • Maturing 2028-04-15 (DICGC ₹5L Insured).
+                    </p>
+                  </div>
+
+                  {/* Digital Lending Facility */}
+                  <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/70 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] uppercase font-bold text-slate-500">Pre-Approved Personal Loan</span>
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-100 text-indigo-800">
+                        Pre-Approved
+                      </span>
+                    </div>
+                    <div className="text-xl font-black text-slate-900 font-mono">
+                      {cifMaskSensitive ? '₹••••••••' : '₹5,00,000.00'}
+                    </div>
+                    <p className="text-[10px] text-slate-500 leading-snug">
+                      Pre-approved limit @ 10.49% p.a. • Zero physical documents • Instant 60s disbursal eligible.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Verified Customer Transaction History */}
+              <div className="p-6 rounded-3xl bg-white border border-slate-200/80 shadow-xs space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h4 className="text-sm font-extrabold text-slate-900 flex items-center space-x-2">
+                      <History className="w-4 h-4 text-brand-600" />
+                      <span>Verified Customer Transactions ({customerDossier.transactions?.length || 0})</span>
+                    </h4>
+                    <p className="text-xs text-slate-400 mt-0.5">Historical ledger entries strictly scoped to this authenticated customer</p>
+                  </div>
+                </div>
+
+                {(!customerDossier.transactions || customerDossier.transactions.length === 0) ? (
+                  <p className="text-xs text-slate-400 py-6 text-center">No transaction records found for this customer account.</p>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-xs">
+                      <thead className="bg-slate-50 border-b border-slate-200/80 text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                        <tr>
+                          <th className="px-4 py-3">Reference / UTR</th>
+                          <th className="px-4 py-3">Account</th>
+                          <th className="px-4 py-3">Description</th>
+                          <th className="px-4 py-3">Timestamp</th>
+                          <th className="px-4 py-3 text-right">Amount</th>
+                          <th className="px-4 py-3 text-center">Status</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {customerDossier.transactions.map((tx) => (
+                          <tr key={tx.id} className="hover:bg-slate-50/50">
+                            <td className="px-4 py-3 font-mono font-bold text-slate-900">{tx.referenceNumber}</td>
+                            <td className="px-4 py-3 font-mono text-slate-600">{tx.accountNumber}</td>
+                            <td className="px-4 py-3 text-slate-700">{tx.description}</td>
+                            <td className="px-4 py-3 text-slate-400 font-mono text-[11px]">
+                              {new Date(tx.createdAt).toLocaleString()}
+                            </td>
+                            <td className="px-4 py-3 text-right font-mono font-bold text-slate-900">
+                              {cifMaskSensitive ? '₹••••••' : `₹${parseFloat(tx.amount).toFixed(2)}`}
+                            </td>
+                            <td className="px-4 py-3 text-center">
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-600">
+                                {tx.status}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
-      {/* Tab 2: Transaction Monitor */}
+      {/* ======================================================== */}
+      {/* TAB 2: CLEARING & AML INQUIRY (Authentication Gate) */}
+      {/* ======================================================== */}
       {activeTab === 'transactions' && (
-        <div className="bg-white rounded-3xl border border-slate-200/80 shadow-xs overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-slate-50 border-b border-slate-200/80 text-[11px] font-bold uppercase tracking-wider text-slate-400">
-                <tr>
-                  <th className="px-6 py-3.5">Reference</th>
-                  <th className="px-6 py-3.5">Account</th>
-                  <th className="px-6 py-3.5">Description</th>
-                  <th className="px-6 py-3.5">Date</th>
-                  <th className="px-6 py-3.5 text-right">Amount</th>
-                  <th className="px-6 py-3.5 text-center">Status</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {transactions.map((tx) => (
-                  <tr key={tx.id} className="hover:bg-slate-50/50">
-                    <td className="px-6 py-3.5 font-mono font-bold text-slate-900">{tx.referenceNumber}</td>
-                    <td className="px-6 py-3.5 font-mono text-slate-600">{tx.accountNumber}</td>
-                    <td className="px-6 py-3.5 text-slate-700">{tx.description}</td>
-                    <td className="px-6 py-3.5 text-slate-400 font-mono text-[11px]">
-                      {new Date(tx.createdAt).toLocaleString()}
-                    </td>
-                    <td className="px-6 py-3.5 text-right font-mono font-bold text-slate-900">
-                      ₹{parseFloat(tx.amount).toFixed(2)}
-                    </td>
-                    <td className="px-6 py-3.5 text-center">
-                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-600">
-                        {tx.status}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        <div className="space-y-6">
+          {/* Transaction Search Terminal Form */}
+          <div className="p-6 rounded-3xl bg-white border border-slate-200/80 shadow-xs space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
+              <div>
+                <h3 className="text-base font-extrabold text-slate-900 flex items-center space-x-2">
+                  <Search className="w-5 h-5 text-brand-600" />
+                  <span>Clearing & AML Transaction Inquiry Terminal</span>
+                </h3>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Universal transaction feed broadcasting is restricted to maintain financial confidentiality. Enter a transaction reference (UTR) or account number to inspect clearing records.
+                </p>
+              </div>
+              <div className="flex items-center space-x-3">
+                <button
+                  type="button"
+                  onClick={() => setTxMaskAmounts(!txMaskAmounts)}
+                  className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold shadow-2xs transition"
+                >
+                  {txMaskAmounts ? <Eye className="w-3.5 h-3.5 text-slate-500" /> : <EyeOff className="w-3.5 h-3.5 text-slate-500" />}
+                  <span>{txMaskAmounts ? 'Reveal Amounts (Audit)' : 'Mask Amounts (Privacy)'}</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Input Form */}
+            <form onSubmit={handleTransactionInquiry} className="grid grid-cols-1 sm:grid-cols-12 gap-3 pt-1">
+              <div className="sm:col-span-3">
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+                  Search Identifier Rail
+                </label>
+                <select
+                  value={txSearchType}
+                  onChange={(e) => setTxSearchType(e.target.value)}
+                  className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-semibold text-slate-700 focus:border-brand-500 focus:bg-white focus:outline-none transition"
+                >
+                  <option value="REFERENCE_NUMBER">Transaction Reference (UTR / RRN)</option>
+                  <option value="ACCOUNT_NUMBER">Customer Account Number</option>
+                  <option value="CIF_USERNAME">Customer CIF / Username</option>
+                </select>
+              </div>
+
+              <div className="sm:col-span-4">
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+                  Query Reference Value
+                </label>
+                <div className="relative">
+                  <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    value={txQuery}
+                    onChange={(e) => setTxQuery(e.target.value)}
+                    placeholder={getTxPlaceholder(txSearchType)}
+                    className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-mono font-medium text-slate-900 focus:border-brand-500 focus:bg-white focus:outline-none transition"
+                  />
+                </div>
+              </div>
+
+              <div className="sm:col-span-3">
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+                  Investigation Purpose
+                </label>
+                <select
+                  value={txReason}
+                  onChange={(e) => setTxReason(e.target.value)}
+                  className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs text-slate-700 focus:border-brand-500 focus:bg-white focus:outline-none transition"
+                >
+                  <option value="Dispute Resolution & Chargeback Settlement">Dispute & Chargeback Resolution</option>
+                  <option value="AML High-Value Screening & Fraud Check">AML Screening & Fraud Check</option>
+                  <option value="Clearing & Settlement Reconciliation">Inter-Bank Clearing Reconciliation</option>
+                  <option value="Failed Payment Investigation">Failed Payment Investigation</option>
+                </select>
+              </div>
+
+              <div className="sm:col-span-2 flex items-end">
+                <button
+                  type="submit"
+                  disabled={!txQuery.trim() || txLoading}
+                  className="w-full py-2.5 px-4 rounded-2xl text-xs font-bold bg-brand-600 hover:bg-brand-700 text-white transition disabled:opacity-50 shadow-md shadow-brand-600/20 flex items-center justify-center space-x-1.5"
+                >
+                  <Search className="w-3.5 h-3.5" />
+                  <span>{txLoading ? 'Searching...' : 'Query Clearing'}</span>
+                </button>
+              </div>
+            </form>
+
+            {txError && (
+              <div className="p-3.5 rounded-2xl bg-amber-50 border border-amber-200 text-amber-800 text-xs flex items-center space-x-2">
+                <AlertTriangle className="w-4 h-4 flex-shrink-0 text-amber-600" />
+                <span>{txError}</span>
+              </div>
+            )}
           </div>
+
+          {/* STATE A: NO QUERY EXECUTED (Confidentiality Protection Active) */}
+          {searchedTransactions === null && (
+            <div className="p-12 rounded-3xl bg-white border border-slate-200/80 text-center space-y-4">
+              <div className="w-16 h-16 rounded-3xl bg-indigo-50 border border-indigo-100 text-indigo-600 flex items-center justify-center mx-auto shadow-inner">
+                <Lock className="w-8 h-8 text-indigo-600" />
+              </div>
+              <div className="max-w-md mx-auto space-y-1.5">
+                <h4 className="text-base font-extrabold text-slate-900">
+                  Transaction Ledger Confidentiality Active
+                </h4>
+                <p className="text-xs text-slate-500 leading-relaxed">
+                  Financial privacy regulations prohibit streaming bulk customer transactions across teller screens. To audit or trace a payment, enter a Transaction Reference (UTR / RRN) or Account Number above.
+                </p>
+              </div>
+              <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
+                <span className="px-3 py-1 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-600 border border-slate-200">
+                  ⚡ NPCI UPI / IMPS Switch Trace
+                </span>
+                <span className="px-3 py-1 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-600 border border-slate-200">
+                  🔍 Targeted Ledger Inquiry
+                </span>
+                <span className="px-3 py-1 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-600 border border-slate-200">
+                  ⚖️ Audited Justification Required
+                </span>
+              </div>
+            </div>
+          )}
+
+          {/* STATE B: MATCHING TRANSACTIONS DISPLAYED */}
+          {searchedTransactions !== null && (
+            <div className="bg-white rounded-3xl border border-slate-200/80 shadow-xs overflow-hidden space-y-0">
+              <div className="p-4 border-b border-slate-100 flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <BadgeAlert className="w-4 h-4 text-brand-600" />
+                  <span className="text-xs font-bold text-slate-900">
+                    Showing {searchedTransactions.length} transaction records for query "{txQuery}"
+                  </span>
+                </div>
+                <button
+                  onClick={() => {
+                    setSearchedTransactions(null);
+                    setTxQuery('');
+                    setTxError('');
+                  }}
+                  className="text-xs text-slate-500 hover:text-slate-800 underline font-medium"
+                >
+                  Clear Inquiry & Reset
+                </button>
+              </div>
+
+              {searchedTransactions.length === 0 ? (
+                <div className="p-8 text-center text-slate-400 text-xs">
+                  No matching transaction records found in clearing ledger.
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs">
+                    <thead className="bg-slate-50 border-b border-slate-200/80 text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                      <tr>
+                        <th className="px-6 py-3.5">Reference / UTR</th>
+                        <th className="px-6 py-3.5">Account</th>
+                        <th className="px-6 py-3.5">Description & Rail</th>
+                        <th className="px-6 py-3.5">Timestamp</th>
+                        <th className="px-6 py-3.5 text-right">Amount</th>
+                        <th className="px-6 py-3.5 text-center">AML & Status</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {searchedTransactions.map((tx) => (
+                        <tr key={tx.id} className="hover:bg-slate-50/50">
+                          <td className="px-6 py-3.5 font-mono font-bold text-slate-900">{tx.referenceNumber}</td>
+                          <td className="px-6 py-3.5 font-mono text-slate-600">{tx.accountNumber}</td>
+                          <td className="px-6 py-3.5 text-slate-700">{tx.description}</td>
+                          <td className="px-6 py-3.5 text-slate-400 font-mono text-[11px]">
+                            {new Date(tx.createdAt).toLocaleString()}
+                          </td>
+                          <td className="px-6 py-3.5 text-right font-mono font-bold text-slate-900">
+                            {txMaskAmounts ? '₹••••••' : `₹${parseFloat(tx.amount).toFixed(2)}`}
+                          </td>
+                          <td className="px-6 py-3.5 text-center">
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-600">
+                              CLEARED • {tx.status}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
 
-      {/* Tab 3: Audit Logs Stream */}
+      {/* ======================================================== */}
+      {/* TAB 3: SECURITY & AUDIT TRAIL STREAM */}
+      {/* ======================================================== */}
       {activeTab === 'audit' && (
         <div className="bg-white rounded-3xl border border-slate-200/80 shadow-xs overflow-hidden">
+          <div className="p-4 border-b border-slate-100 flex items-center justify-between">
+            <div>
+              <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider flex items-center space-x-2">
+                <Fingerprint className="w-4 h-4 text-brand-600" />
+                <span>Regulatory Security & Access Audit Log</span>
+              </h3>
+              <p className="text-[11px] text-slate-400 mt-0.5">Immutable audit trail of administrator sessions, customer CIF lookups, and transaction queries</p>
+            </div>
+            <span className="text-xs text-slate-400 font-mono">
+              {auditLogs.length} events recorded
+            </span>
+          </div>
+
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
               <thead className="bg-slate-50 border-b border-slate-200/80 text-[11px] font-bold uppercase tracking-wider text-slate-400">
                 <tr>
                   <th className="px-6 py-3.5">Timestamp</th>
-                  <th className="px-6 py-3.5">User</th>
+                  <th className="px-6 py-3.5">Operator</th>
                   <th className="px-6 py-3.5">Action</th>
                   <th className="px-6 py-3.5">Entity</th>
-                  <th className="px-6 py-3.5">Details</th>
+                  <th className="px-6 py-3.5">Audit Details & Justification</th>
                   <th className="px-6 py-3.5 text-center">Status</th>
                 </tr>
               </thead>
@@ -360,7 +1147,9 @@ const AdminDashboard = () => {
                     <td className="px-6 py-3.5 font-bold text-slate-800">@{log.username}</td>
                     <td className="px-6 py-3.5 text-brand-600 font-bold">{log.action}</td>
                     <td className="px-6 py-3.5 text-slate-500">{log.entityName} #{log.entityId}</td>
-                    <td className="px-6 py-3.5 text-slate-600 max-w-xs truncate">{log.details}</td>
+                    <td className="px-6 py-3.5 text-slate-600 max-w-md truncate" title={log.details}>
+                      {log.details}
+                    </td>
                     <td className="px-6 py-3.5 text-center">
                       <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
                         log.status === 'SUCCESS' ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'

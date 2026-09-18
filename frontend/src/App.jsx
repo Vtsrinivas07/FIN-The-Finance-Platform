@@ -11,6 +11,7 @@ import Register from './pages/auth/Register';
 import Dashboard from './pages/customer/Dashboard';
 import Transfers from './pages/customer/Transfers';
 import Beneficiaries from './pages/customer/Beneficiaries';
+import FinancialProducts from './pages/customer/FinancialProducts';
 import BillPayments from './pages/customer/BillPayments';
 import Cards from './pages/customer/Cards';
 import Analytics from './pages/customer/Analytics';
@@ -88,7 +89,8 @@ const App = () => {
             <Route index element={<IndexRoute />} />
             <Route path="dashboard" element={<CustomerRoute><Dashboard /></CustomerRoute>} />
             <Route path="transfers" element={<CustomerRoute><Transfers /></CustomerRoute>} />
-            <Route path="beneficiaries" element={<CustomerRoute><Beneficiaries /></CustomerRoute>} />
+            <Route path="products" element={<CustomerRoute><FinancialProducts /></CustomerRoute>} />
+            <Route path="beneficiaries" element={<Navigate to="/transfers?tab=beneficiaries" replace />} />
             <Route path="bills" element={<CustomerRoute><BillPayments /></CustomerRoute>} />
             <Route path="cards" element={<CustomerRoute><Cards /></CustomerRoute>} />
             <Route path="analytics" element={<CustomerRoute><Analytics /></CustomerRoute>} />

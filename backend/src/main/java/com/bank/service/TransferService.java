@@ -17,10 +17,10 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.bank.repository.UserRepository;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -28,6 +28,7 @@ import java.util.stream.Collectors;
 public class TransferService {
 
     private final AccountRepository accountRepository;
+    private final UserRepository userRepository;
     private final TransactionRepository transactionRepository;
     private final NotificationService notificationService;
     private final AuditService auditService;
@@ -39,10 +40,6 @@ public class TransferService {
 
         if (senderAccount.getStatus() != Account.AccountStatus.ACTIVE) {
             throw new BadRequestException("Your account is not active");
-        }
-
-        if (senderAccount.getAccountNumber().equals(request.getRecipientAccountNumber())) {
-            throw new BadRequestException("Cannot transfer funds to your own account");
         }
 
         if (request.getAmount().compareTo(BigDecimal.ZERO) <= 0) {
@@ -58,6 +55,129 @@ public class TransferService {
                     NotificationType.TRANSFER_FAILED
             );
             throw new InsufficientBalanceException("Insufficient balance. Available: ₹" + senderAccount.getBalance());
+        }
+
+        // --- Check if UPI Phone Payment ---
+        boolean isUpiPhone = "UPI_PHONE".equalsIgnoreCase(request.getPaymentType()) ||
+                (request.getRecipientPhone() != null && !request.getRecipientPhone().isBlank());
+
+        if (isUpiPhone) {
+            String cleanPhone = (request.getRecipientPhone() != null ? request.getRecipientPhone() : request.getRecipientAccountNumber())
+                    .replaceAll("[^0-9]", "");
+            if (cleanPhone.length() > 10) cleanPhone = cleanPhone.substring(cleanPhone.length() - 10);
+
+            if (senderUser.getMobileNumber() != null && senderUser.getMobileNumber().endsWith(cleanPhone)) {
+                throw new BadRequestException("Cannot transfer funds to your own registered phone number");
+            }
+
+            Optional<User> recipientUserOpt = userRepository.findByMobileNumber(cleanPhone);
+            if (recipientUserOpt.isPresent()) {
+                User recipientUser = recipientUserOpt.get();
+                Account recipientAccount = accountService.getPrimaryAccount(recipientUser);
+
+                if (recipientAccount.getStatus() != Account.AccountStatus.ACTIVE) {
+                    throw new BadRequestException("Recipient UPI account is not active");
+                }
+
+                senderAccount.setBalance(senderAccount.getBalance().subtract(request.getAmount()));
+                accountRepository.save(senderAccount);
+
+                recipientAccount.setBalance(recipientAccount.getBalance().add(request.getAmount()));
+                accountRepository.save(recipientAccount);
+
+                String upiRef = "UPI" + System.currentTimeMillis();
+                String note = (request.getDescription() != null && !request.getDescription().isBlank())
+                        ? request.getDescription()
+                        : "UPI to " + recipientUser.getFullName() + " (" + cleanPhone + ")";
+
+                Transaction debitTx = Transaction.builder()
+                        .account(senderAccount)
+                        .referenceNumber(upiRef)
+                        .amount(request.getAmount())
+                        .type(Transaction.TransactionType.DEBIT)
+                        .category(Transaction.TransactionCategory.TRANSFER)
+                        .status(Transaction.TransactionStatus.SUCCESS)
+                        .description(note)
+                        .recipientInfo(recipientUser.getFullName() + " (+91 " + cleanPhone + ")")
+                        .build();
+                debitTx = transactionRepository.save(debitTx);
+
+                String creditRef = "UPI" + (System.currentTimeMillis() + 1);
+                Transaction creditTx = Transaction.builder()
+                        .account(recipientAccount)
+                        .referenceNumber(creditRef)
+                        .amount(request.getAmount())
+                        .type(Transaction.TransactionType.CREDIT)
+                        .category(Transaction.TransactionCategory.TRANSFER)
+                        .status(Transaction.TransactionStatus.SUCCESS)
+                        .description("UPI received from " + senderUser.getFullName())
+                        .recipientInfo(senderUser.getFullName() + " (" + senderUser.getUsername() + "@finbank)")
+                        .relatedTransactionId(debitTx.getId())
+                        .build();
+                creditTx = transactionRepository.save(creditTx);
+
+                debitTx.setRelatedTransactionId(creditTx.getId());
+                transactionRepository.save(debitTx);
+
+                notificationService.createNotification(
+                        senderUser,
+                        "UPI Transfer Successful",
+                        String.format("₹%.2f sent via UPI to %s (+91 %s). Ref: %s",
+                                request.getAmount(), recipientUser.getFullName(), cleanPhone, upiRef),
+                        NotificationType.TRANSFER_SUCCESS
+                );
+
+                notificationService.createNotification(
+                        recipientUser,
+                        "UPI Payment Received",
+                        String.format("₹%.2f received via UPI from %s into your account %s. Ref: %s",
+                                request.getAmount(), senderUser.getFullName(),
+                                accountService.maskAccountNumber(recipientAccount.getAccountNumber()), creditRef),
+                        NotificationType.TRANSFER_SUCCESS
+                );
+
+                auditService.log(senderUser, "UPI_TRANSFER_SUCCESS", "Transaction", debitTx.getId().toString(), "SUCCESS", null,
+                        "Transferred ₹" + request.getAmount() + " via UPI to +91 " + cleanPhone + " (" + recipientUser.getUsername() + ")");
+
+                return mapToResponse(debitTx);
+            } else {
+                senderAccount.setBalance(senderAccount.getBalance().subtract(request.getAmount()));
+                accountRepository.save(senderAccount);
+
+                String upiRef = "UPI" + System.currentTimeMillis();
+                String note = (request.getDescription() != null && !request.getDescription().isBlank())
+                        ? request.getDescription()
+                        : "UPI P2P to +91 " + cleanPhone;
+
+                Transaction debitTx = Transaction.builder()
+                        .account(senderAccount)
+                        .referenceNumber(upiRef)
+                        .amount(request.getAmount())
+                        .type(Transaction.TransactionType.DEBIT)
+                        .category(Transaction.TransactionCategory.TRANSFER)
+                        .status(Transaction.TransactionStatus.SUCCESS)
+                        .description(note)
+                        .recipientInfo("UPI Recipient (+91 " + cleanPhone + "@upi)")
+                        .build();
+                debitTx = transactionRepository.save(debitTx);
+
+                notificationService.createNotification(
+                        senderUser,
+                        "UPI Transfer Successful",
+                        String.format("₹%.2f transferred via NPCI UPI to +91 %s. Ref: %s",
+                                request.getAmount(), cleanPhone, upiRef),
+                        NotificationType.TRANSFER_SUCCESS
+                );
+
+                auditService.log(senderUser, "UPI_EXTERNAL_TRANSFER", "Transaction", debitTx.getId().toString(), "SUCCESS", null,
+                        "Transferred ₹" + request.getAmount() + " via NPCI UPI to +91 " + cleanPhone);
+
+                return mapToResponse(debitTx);
+            }
+        }
+
+        if (senderAccount.getAccountNumber().equals(request.getRecipientAccountNumber())) {
+            throw new BadRequestException("Cannot transfer funds to your own account");
         }
 
         Account recipientAccount = accountRepository.findByAccountNumber(request.getRecipientAccountNumber())
@@ -172,5 +292,34 @@ public class TransferService {
                 .recipientInfo(tx.getRecipientInfo())
                 .createdAt(tx.getCreatedAt())
                 .build();
+    }
+
+    @Transactional(readOnly = true)
+    public Map<String, Object> lookupUpiPhone(String rawPhone) {
+        String clean = rawPhone.replaceAll("[^0-9]", "");
+        if (clean.length() > 10) clean = clean.substring(clean.length() - 10);
+
+        Map<String, Object> result = new HashMap<>();
+        Optional<User> userOpt = userRepository.findByMobileNumber(clean);
+        if (userOpt.isPresent()) {
+            User u = userOpt.get();
+            Account acc = accountService.getPrimaryAccount(u);
+            result.put("isInternalCustomer", true);
+            result.put("fullName", u.getFullName());
+            result.put("username", u.getUsername());
+            result.put("phone", clean);
+            result.put("upiId", u.getUsername() + "@finbank");
+            result.put("maskedAccount", accountService.maskAccountNumber(acc.getAccountNumber()));
+            result.put("bankName", "FIN Bank (Primary)");
+        } else {
+            result.put("isInternalCustomer", false);
+            result.put("fullName", "Verified UPI Beneficiary");
+            result.put("username", "upi_user");
+            result.put("phone", clean);
+            result.put("upiId", clean + "@upi");
+            result.put("maskedAccount", "•••• •••• " + (clean.length() >= 4 ? clean.substring(clean.length() - 4) : "1234"));
+            result.put("bankName", "NPCI UPI Inter-Bank Switch");
+        }
+        return result;
     }
 }

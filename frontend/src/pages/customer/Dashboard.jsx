@@ -25,8 +25,21 @@ import {
   Lock,
   CheckCircle2,
   X,
-  ArrowDownToLine
+  ArrowDownToLine,
+  Sparkles,
+  Percent,
+  PiggyBank,
+  Coins,
+  Calculator,
+  ChevronRight,
+  Info,
+  ShieldAlert,
+  FileCheck,
+  Award,
+  Zap,
+  CheckCircle
 } from 'lucide-react';
+import CibilGaugeChart from '../../components/common/CibilGaugeChart';
 
 const Dashboard = () => {
   const { user } = useAuth();
@@ -53,6 +66,127 @@ const Dashboard = () => {
   const [depositStep, setDepositStep] = useState('INPUT'); // 'INPUT', 'PIN', 'PROCESSING', 'SUCCESS'
   const [gatewayMessage, setGatewayMessage] = useState('');
   const [copiedKey, setCopiedKey] = useState(null);
+
+  // KYC Modal State
+  const [showKycModal, setShowKycModal] = useState(false);
+
+  // Financial Health & Products Hub States
+  const [showCibilModal, setShowCibilModal] = useState(false);
+  const [showFdModal, setShowFdModal] = useState(false);
+  const [showLoanModal, setShowLoanModal] = useState(false);
+  const [showWealthModal, setShowWealthModal] = useState(false);
+
+  // Interactive FD State & Calculator
+  const [fdAmount, setFdAmount] = useState(50000);
+  const [fdTenureMonths, setFdTenureMonths] = useState(36);
+  const [bookedFds, setBookedFds] = useState([
+    {
+      id: 'FD-2025-78210',
+      principal: 100000,
+      rate: 7.25,
+      tenureMonths: 36,
+      maturityDate: '2028-04-15',
+      maturityAmount: 124150,
+      interestEarned: 24150,
+      status: 'ACTIVE'
+    }
+  ]);
+  const [fdSuccessData, setFdSuccessData] = useState(null);
+
+  // Interactive Pre-Approved Loan State
+  const [loanAmount, setLoanAmount] = useState(100000);
+  const [loanTenureMonths, setLoanTenureMonths] = useState(24);
+  const [loanProcessing, setLoanProcessing] = useState(false);
+  const [loanSuccessData, setLoanSuccessData] = useState(null);
+
+  // Wealth & SIP State
+  const [sipAmount, setSipAmount] = useState(1000);
+  const [sipSuccessToast, setSipSuccessToast] = useState('');
+
+  const getFdRate = (months) => {
+    if (months === 12) return 6.80;
+    if (months === 24) return 7.10;
+    if (months === 36) return 7.25;
+    return 7.40;
+  };
+
+  const calculateFdMaturity = (principal, months) => {
+    const rate = getFdRate(months);
+    const years = months / 12;
+    const maturity = Math.round(principal * Math.pow(1 + (rate / 400), 4 * years));
+    const interest = maturity - principal;
+    return { maturity, interest, rate };
+  };
+
+  const calculateLoanEmi = (principal, months) => {
+    const annualRate = 10.49;
+    const r = annualRate / 1200;
+    const emi = Math.round((principal * r * Math.pow(1 + r, months)) / (Math.pow(1 + r, months) - 1));
+    const totalPayable = emi * months;
+    const totalInterest = totalPayable - principal;
+    return { emi, totalPayable, totalInterest, annualRate };
+  };
+
+  const handleBookFd = () => {
+    const principal = parseFloat(fdAmount);
+    if (isNaN(principal) || principal < 5000) {
+      alert('Minimum Fixed Deposit amount is ₹5,000');
+      return;
+    }
+    const currentBalance = parseFloat(account?.balance || 0);
+    if (principal > currentBalance) {
+      alert(`Insufficient savings balance (₹${currentBalance.toLocaleString('en-IN')}) to book this FD of ₹${principal.toLocaleString('en-IN')}. Please add funds first.`);
+      return;
+    }
+
+    const { maturity, interest, rate } = calculateFdMaturity(principal, fdTenureMonths);
+    const matDate = new Date();
+    matDate.setMonth(matDate.getMonth() + fdTenureMonths);
+
+    const newFd = {
+      id: `FD-2026-${Math.floor(100000 + Math.random() * 900000)}`,
+      principal,
+      rate,
+      tenureMonths: fdTenureMonths,
+      maturityDate: matDate.toISOString().split('T')[0],
+      maturityAmount: maturity,
+      interestEarned: interest,
+      status: 'ACTIVE'
+    };
+
+    setBookedFds(prev => [newFd, ...prev]);
+    setFdSuccessData(newFd);
+  };
+
+  const handleDisburseLoan = async () => {
+    setLoanProcessing(true);
+    try {
+      const { emi, annualRate } = calculateLoanEmi(loanAmount, loanTenureMonths);
+      const loanAccNumber = `LN-2026-${Math.floor(100000 + Math.random() * 900000)}`;
+
+      const res = await api.post('/accounts/deposit', {
+        amount: parseFloat(loanAmount),
+        paymentMethod: 'LOAN_DISBURSAL',
+        sourceDetail: `Instant Personal Loan Disbursal (Loan A/C ${loanAccNumber})`
+      });
+
+      if (res.data?.success) {
+        setLoanSuccessData({
+          loanAccNumber,
+          amount: loanAmount,
+          tenureMonths: loanTenureMonths,
+          emi,
+          annualRate,
+          disbursedAt: new Date().toLocaleTimeString()
+        });
+        loadDashboardData();
+      }
+    } catch (err) {
+      alert(err.response?.data?.message || 'Loan disbursal failed. Please try again.');
+    } finally {
+      setLoanProcessing(false);
+    }
+  };
 
   useEffect(() => {
     loadDashboardData();
@@ -164,13 +298,24 @@ const Dashboard = () => {
   return (
     <div className="space-y-6">
       {/* Top Greeting */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
-            Welcome back, {user?.fullName?.split(' ')[0]} 👋
-          </h1>
+          <div className="flex items-center flex-wrap gap-2.5">
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+              Welcome back, {user?.fullName?.split(' ')[0]} 👋
+            </h1>
+            <button
+              onClick={() => setShowKycModal(true)}
+              className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200/80 text-[11px] font-bold transition shadow-xs cursor-pointer group"
+              title="Click to view KYC Verification Details"
+            >
+              <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+              <span>Full KYC Verified (Tier 3)</span>
+              <ChevronRight className="w-3 h-3 text-emerald-500 opacity-60 group-hover:translate-x-0.5 transition-transform" />
+            </button>
+          </div>
           <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
-            Here is your daily account summary and activity
+            Here is your daily account summary and financial wellness hub
           </p>
         </div>
         <div className="flex items-center space-x-2">
@@ -275,7 +420,7 @@ const Dashboard = () => {
           {[
             { label: 'Send Money', path: '/transfers', icon: ArrowLeftRight, color: 'bg-indigo-50 text-indigo-600 group-hover:bg-indigo-600' },
             { label: 'Pay Bills', path: '/bills', icon: Receipt, color: 'bg-emerald-50 text-emerald-600 group-hover:bg-emerald-600' },
-            { label: 'Add Payee', path: '/beneficiaries', icon: Users, color: 'bg-blue-50 text-blue-600 group-hover:bg-blue-600' },
+            { label: 'Add Payee', path: '/transfers?tab=beneficiaries', icon: Users, color: 'bg-blue-50 text-blue-600 group-hover:bg-blue-600' },
             { label: 'Recharge', path: '/bills', icon: Smartphone, color: 'bg-amber-50 text-amber-600 group-hover:bg-amber-600' },
             { label: 'Manage Cards', path: '/cards', icon: CreditCard, color: 'bg-purple-50 text-purple-600 group-hover:bg-purple-600' },
             { label: 'Statements', path: '/transactions', icon: Wallet, color: 'bg-slate-100 text-slate-700 group-hover:bg-slate-800' },
@@ -294,6 +439,286 @@ const Dashboard = () => {
               </button>
             );
           })}
+        </div>
+      </div>
+
+      {/* Financial Health & Products Hub (Goal.md sections 8, 24 & Indian Banking Benchmark) */}
+      <div className="bg-gradient-to-b from-slate-900 to-slate-950 rounded-3xl p-6 sm:p-7 text-white shadow-xl border border-slate-800">
+        {/* Hub Header */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-slate-800">
+          <div>
+            <div className="flex items-center space-x-2.5">
+              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-brand-500/20 text-brand-300 border border-brand-500/30 flex items-center space-x-1">
+                <Sparkles className="w-3 h-3 text-brand-400" />
+                <span>Financial Products & Health</span>
+              </span>
+              <span className="text-[11px] text-slate-400 font-medium">
+                RBI Compliant • DICGC Insured
+              </span>
+            </div>
+            <h2 className="text-xl sm:text-2xl font-black tracking-tight text-white mt-1.5">
+              Grow, Borrow & Protect Your Wealth
+            </h2>
+            <p className="text-xs text-slate-400 mt-0.5">
+              High-yield guaranteed deposits, real-time CIBIL tracking, instant credit, and zero-commission wealth
+            </p>
+          </div>
+
+          <button
+            onClick={() => navigate('/products')}
+            className="px-4 py-2 rounded-xl text-xs font-bold bg-brand-600 hover:bg-brand-500 text-white flex items-center space-x-2 transition shadow-md shadow-brand-600/20 cursor-pointer self-start md:self-auto shrink-0"
+          >
+            <span>View Full Financial Hub</span>
+            <ArrowUpRight className="w-4 h-4" />
+          </button>
+        </div>
+
+        {/* 4 Interactive Product Cards Grid (Harmonized Heights, Tags, & Buttons) */}
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 sm:gap-5 mt-6 items-stretch">
+          {/* PRODUCT 1: CIBIL Credit Health Score */}
+          <div className="bg-slate-800/70 hover:bg-slate-800/90 rounded-2xl p-5 border border-slate-700/70 transition-all flex flex-col justify-between shadow-md">
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center space-x-2.5">
+                  <div className="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
+                    <Award className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <span className="text-xs font-bold text-slate-100 block">CIBIL Credit Score</span>
+                    <span className="text-[10px] text-slate-400">TransUnion • Experian</span>
+                  </div>
+                </div>
+                <span className="px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 whitespace-nowrap shrink-0">
+                  EXCELLENT
+                </span>
+              </div>
+
+              {/* Gauge Speedometer Chart with High-Contrast Radiant Elements */}
+              <div className="py-2.5 flex items-center justify-center">
+                <CibilGaugeChart score={785} showFooter={true} isDark={true} compact={true} />
+              </div>
+
+              {/* Micro Factors */}
+              <div className="space-y-1.5 text-[11px] text-slate-300 pt-2 border-t border-slate-700/60">
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-400">On-Time Payments:</span>
+                  <span className="font-bold text-emerald-400">100% (24/24)</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-400">Card Utilization:</span>
+                  <span className="font-bold text-emerald-400">22.8% (&lt;30% ideal)</span>
+                </div>
+              </div>
+            </div>
+
+            <button
+              onClick={() => setShowCibilModal(true)}
+              className="mt-4 w-full h-10 rounded-xl bg-slate-700/90 hover:bg-brand-600 text-white text-xs font-bold transition flex items-center justify-center space-x-1.5 cursor-pointer shadow-xs"
+            >
+              <span>View Credit Health Report</span>
+              <ChevronRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
+
+          {/* PRODUCT 2: High-Yield Fixed Deposit (FD / RD) */}
+          <div className="bg-slate-800/70 hover:bg-slate-800/90 rounded-2xl p-5 border border-slate-700/70 transition-all flex flex-col justify-between shadow-md">
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center space-x-2.5">
+                  <div className="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center shrink-0">
+                    <PiggyBank className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <span className="text-xs font-bold text-slate-100 block">Fixed Deposits</span>
+                    <span className="text-[10px] text-slate-400">DICGC Insured ₹5L</span>
+                  </div>
+                </div>
+                <span className="px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-amber-500/20 text-amber-300 border border-amber-500/30 whitespace-nowrap shrink-0">
+                  7.25% p.a.
+                </span>
+              </div>
+
+              {/* Quick Calculator View */}
+              <div className="my-2.5 p-3.5 rounded-xl bg-slate-900/80 border border-slate-700/60 space-y-2.5">
+                <div className="flex items-center justify-between text-[11px]">
+                  <span className="text-slate-400 font-medium">Invest:</span>
+                  <div className="flex space-x-1.5">
+                    {[25000, 50000, 100000].map(amt => (
+                      <button
+                        key={amt}
+                        onClick={() => setFdAmount(amt)}
+                        className={`px-2 py-0.5 rounded text-[10px] font-bold transition ${
+                          fdAmount === amt ? 'bg-amber-500 text-slate-950 shadow-xs' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                        }`}
+                      >
+                        ₹{amt >= 100000 ? `${amt / 100000}L` : `${amt / 1000}k`}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {(() => {
+                  const { maturity, interest, rate } = calculateFdMaturity(fdAmount, fdTenureMonths);
+                  return (
+                    <div className="flex items-baseline justify-between pt-2 border-t border-slate-800">
+                      <div>
+                        <span className="text-[10px] text-slate-400 block font-medium">At 3 Yrs ({rate}%):</span>
+                        <span className="text-base font-extrabold text-white font-mono">
+                          ₹{maturity.toLocaleString('en-IN')}
+                        </span>
+                      </div>
+                      <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/15 px-2 py-0.5 rounded-md border border-emerald-500/20">
+                        +₹{interest.toLocaleString('en-IN')} Gain
+                      </span>
+                    </div>
+                  );
+                })()}
+              </div>
+
+              {/* Deposit Portfolio Snapshot */}
+              <div className="space-y-1.5 text-[11px] text-slate-300 pt-2 border-t border-slate-700/60">
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-400">Compounding:</span>
+                  <span className="font-bold text-white">Quarterly Compounded</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-400">Active FDs:</span>
+                  <span className="font-bold text-amber-400">
+                    {bookedFds.length} Deposit ({bookedFds.reduce((acc, f) => acc + f.principal, 0).toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 })})
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <button
+              onClick={() => { setFdSuccessData(null); setShowFdModal(true); }}
+              className="mt-4 w-full h-10 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold transition flex items-center justify-center space-x-1.5 cursor-pointer shadow-xs"
+            >
+              <Calculator className="w-3.5 h-3.5" />
+              <span>Open Instant Deposit</span>
+            </button>
+          </div>
+
+          {/* PRODUCT 3: Pre-Approved Instant Personal Loan */}
+          <div className="bg-slate-800/70 hover:bg-slate-800/90 rounded-2xl p-5 border border-slate-700/70 transition-all flex flex-col justify-between shadow-md">
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center space-x-2.5">
+                  <div className="w-8 h-8 rounded-lg bg-indigo-500/20 text-indigo-400 flex items-center justify-center shrink-0">
+                    <Zap className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <span className="text-xs font-bold text-slate-100 block">Pre-Approved Loan</span>
+                    <span className="text-[10px] text-slate-400">Zero Paperwork • Instant</span>
+                  </div>
+                </div>
+                <span className="px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 whitespace-nowrap shrink-0">
+                  PRE-APPROVED
+                </span>
+              </div>
+
+              {/* Offer & EMI Box */}
+              <div className="my-2.5 p-3.5 rounded-xl bg-slate-900/80 border border-slate-700/60 space-y-2.5">
+                <div className="flex items-baseline justify-between">
+                  <div>
+                    <span className="text-[10px] text-slate-400 block font-medium">Eligible Credit Limit</span>
+                    <span className="text-base font-black text-white font-mono">₹5,00,000</span>
+                  </div>
+                  <span className="text-[10px] text-indigo-300 font-bold bg-indigo-500/20 px-2 py-0.5 rounded-md border border-indigo-500/30">
+                    @ 10.49% p.a.
+                  </span>
+                </div>
+
+                {(() => {
+                  const { emi } = calculateLoanEmi(loanAmount, loanTenureMonths);
+                  return (
+                    <div className="flex items-center justify-between pt-2 border-t border-slate-800 text-[11px]">
+                      <span className="text-slate-400">₹1L for 24M EMI:</span>
+                      <span className="font-bold text-white font-mono">₹{emi.toLocaleString('en-IN')}/mo</span>
+                    </div>
+                  );
+                })()}
+              </div>
+
+              {/* Loan Speed Highlights */}
+              <div className="space-y-1.5 text-[11px] text-slate-300 pt-2 border-t border-slate-700/60">
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-400">Tenure Flexibility:</span>
+                  <span className="font-bold text-white">12 to 60 Months</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-400">Direct Disbursal:</span>
+                  <span className="font-bold text-emerald-400">In 60 Seconds</span>
+                </div>
+              </div>
+            </div>
+
+            <button
+              onClick={() => { setLoanSuccessData(null); setShowLoanModal(true); }}
+              className="mt-4 w-full h-10 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition flex items-center justify-center space-x-1.5 cursor-pointer shadow-xs"
+            >
+              <Zap className="w-3.5 h-3.5" />
+              <span>Claim Instant Loan</span>
+              <ChevronRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
+
+          {/* PRODUCT 4: Wealth & Insurance Protection */}
+          <div className="bg-slate-800/70 hover:bg-slate-800/90 rounded-2xl p-5 border border-slate-700/70 transition-all flex flex-col justify-between shadow-md">
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center space-x-2.5">
+                  <div className="w-8 h-8 rounded-lg bg-rose-500/20 text-rose-400 flex items-center justify-center shrink-0">
+                    <Coins className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <span className="text-xs font-bold text-slate-100 block">Wealth & Insurance</span>
+                    <span className="text-[10px] text-slate-400">Zero Commission Direct</span>
+                  </div>
+                </div>
+                <span className="px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-rose-500/20 text-rose-300 border border-rose-500/30 whitespace-nowrap shrink-0">
+                  PROTECT
+                </span>
+              </div>
+
+              {/* Curated Baskets */}
+              <div className="my-2.5 p-3.5 rounded-xl bg-slate-900/80 border border-slate-700/60 space-y-2 text-[11px]">
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-300 font-medium truncate pr-2">Nifty 50 Index SIP</span>
+                  <span className="font-bold text-emerald-400 whitespace-nowrap">14.8% CAGR</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-300 font-medium truncate pr-2">₹1 Cr Term Life</span>
+                  <span className="text-slate-400 whitespace-nowrap">from ₹650/mo</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-300 font-medium truncate pr-2">₹10L Health Cover</span>
+                  <span className="text-slate-400 whitespace-nowrap">Zero Co-pay</span>
+                </div>
+              </div>
+
+              {/* Regulatory Assurance */}
+              <div className="space-y-1.5 text-[11px] text-slate-300 pt-2 border-t border-slate-700/60">
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-400">Tax Benefits:</span>
+                  <span className="font-bold text-emerald-400">Sec 80C &amp; 80D</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-400">Regulators:</span>
+                  <span className="font-bold text-white">SEBI &amp; IRDAI Licensed</span>
+                </div>
+              </div>
+            </div>
+
+            <button
+              onClick={() => setShowWealthModal(true)}
+              className="mt-4 w-full h-10 rounded-xl bg-slate-700/90 hover:bg-rose-600 text-white text-xs font-bold transition flex items-center justify-center space-x-1.5 cursor-pointer shadow-xs"
+            >
+              <Coins className="w-3.5 h-3.5" />
+              <span>Explore Wealth & Cover</span>
+              <ChevronRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
         </div>
       </div>
 
@@ -780,6 +1205,801 @@ const Dashboard = () => {
                 </div>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* KYC Compliance & Verification Details Modal */}
+      {showKycModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white w-full max-w-lg rounded-3xl p-6 sm:p-7 shadow-2xl border border-slate-100 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between pb-4 border-b border-slate-100 mb-5">
+              <div className="flex items-center space-x-2.5">
+                <div className="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center">
+                  <ShieldCheck className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-900">KYC Verification & Identity</h3>
+                  <p className="text-xs text-slate-500">RBI Master Direction - Know Your Customer (Tier 3)</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowKycModal(false)}
+                className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* KYC Status Badge Banner */}
+            <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200/80 mb-5 flex items-center justify-between">
+              <div>
+                <div className="flex items-center space-x-1.5">
+                  <CheckCircle className="w-4 h-4 text-emerald-600" />
+                  <span className="text-xs font-bold text-emerald-900">Full KYC Verified (Tier 3)</span>
+                </div>
+                <p className="text-[11px] text-emerald-700 mt-0.5">
+                  Unlimited transactions • Zero holding or debit cap
+                </p>
+              </div>
+              <span className="px-2.5 py-1 rounded-full text-[10px] font-mono font-bold bg-emerald-600 text-white shadow-xs">
+                ACTIVE
+              </span>
+            </div>
+
+            {/* Compliance Verified Records Grid */}
+            <div className="space-y-2.5 text-xs">
+              <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200/80 flex items-center justify-between">
+                <div>
+                  <span className="text-[10px] uppercase font-bold text-slate-400 block">Aadhaar (UIDAI Verified)</span>
+                  <span className="font-bold text-slate-900 font-mono">•••• •••• 8921</span>
+                </div>
+                <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-700">OTP / Biometric Authenticated</span>
+              </div>
+
+              <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200/80 flex items-center justify-between">
+                <div>
+                  <span className="text-[10px] uppercase font-bold text-slate-400 block">Permanent Account Number (PAN)</span>
+                  <span className="font-bold text-slate-900 font-mono">••••• 1234F</span>
+                </div>
+                <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-700">NSDL Validated</span>
+              </div>
+
+              <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200/80 flex items-center justify-between">
+                <div>
+                  <span className="text-[10px] uppercase font-bold text-slate-400 block">Video KYC (V-KYC)</span>
+                  <span className="font-bold text-slate-900 font-mono">VKYC-2026-90412</span>
+                </div>
+                <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-700">Facial & Geo-match Done</span>
+              </div>
+
+              <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200/80 flex items-center justify-between">
+                <div>
+                  <span className="text-[10px] uppercase font-bold text-slate-400 block">Central KYC (CKYC) Registry ID</span>
+                  <span className="font-bold text-slate-900 font-mono">IN-CKYC-9912049102</span>
+                </div>
+                <span className="text-[10px] text-slate-500 font-medium">CERSAI Portal Synced</span>
+              </div>
+
+              <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200/80 flex items-center justify-between">
+                <div>
+                  <span className="text-[10px] uppercase font-bold text-slate-400 block">Next Periodic Re-KYC</span>
+                  <span className="font-bold text-slate-900 font-mono">14 Jan 2036</span>
+                </div>
+                <span className="text-[10px] text-slate-500">Valid 10 Years (Low Risk)</span>
+              </div>
+            </div>
+
+            {/* Regulatory Footer Note */}
+            <div className="mt-5 p-3 rounded-xl bg-slate-100 text-[11px] text-slate-500 flex items-start space-x-2">
+              <Info className="w-4 h-4 text-slate-400 flex-shrink-0 mt-0.5" />
+              <span>
+                Verified under Section 35A of the Banking Regulation Act, 1949 and Prevention of Money Laundering Act (PMLA), 2002.
+              </span>
+            </div>
+
+            <div className="mt-6 flex items-center justify-end space-x-3">
+              <button
+                type="button"
+                onClick={() => {
+                  alert('KYC Certification PDF downloaded for your records.');
+                }}
+                className="px-4 py-2.5 rounded-xl border border-slate-300 text-slate-700 hover:bg-slate-50 text-xs font-semibold transition flex items-center space-x-1.5"
+              >
+                <FileCheck className="w-3.5 h-3.5" />
+                <span>Download KYC Certificate</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowKycModal(false)}
+                className="px-5 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold transition shadow-xs"
+              >
+                Done
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* CIBIL Credit Health Report Modal */}
+      {showCibilModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white w-full max-w-xl rounded-3xl p-6 sm:p-7 shadow-2xl border border-slate-100 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between pb-4 border-b border-slate-100 mb-5">
+              <div className="flex items-center space-x-2.5">
+                <div className="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center">
+                  <Award className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-900">TransUnion CIBIL Credit Report</h3>
+                  <p className="text-xs text-slate-500">Official Credit Scorecard & Factor Analysis</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowCibilModal(false)}
+                className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Score Showcase Hero with Speedometer Gauge */}
+            <div className="p-6 rounded-3xl bg-slate-900 text-white shadow-xl border border-slate-800 mb-5 flex flex-col items-center">
+              <span className="px-3 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-widest bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 inline-block mb-3">
+                EXCELLENT CREDIT HEALTH
+              </span>
+              <CibilGaugeChart score={785} showFooter={true} />
+              <p className="text-xs text-emerald-400 font-semibold mt-3 text-center">
+                Higher than 89% of borrowers in India • Eligible for Prime Loan Rates
+              </p>
+            </div>
+
+            {/* 5 High-Impact Credit Factors */}
+            <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider mb-3">Score Drivers & Factors</h4>
+            <div className="space-y-2.5 text-xs">
+              <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200/80 flex items-center justify-between">
+                <div>
+                  <div className="flex items-center space-x-2">
+                    <span className="font-bold text-slate-900">Payment History</span>
+                    <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-purple-100 text-purple-700">HIGH IMPACT</span>
+                  </div>
+                  <span className="text-[11px] text-slate-500">24 of 24 on-time monthly EMI & bill payments</span>
+                </div>
+                <span className="font-bold text-emerald-600">100% On-Time</span>
+              </div>
+
+              <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200/80 flex items-center justify-between">
+                <div>
+                  <div className="flex items-center space-x-2">
+                    <span className="font-bold text-slate-900">Credit Card Utilization</span>
+                    <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-purple-100 text-purple-700">HIGH IMPACT</span>
+                  </div>
+                  <span className="text-[11px] text-slate-500">₹34,200 of ₹1,50,000 credit limit in use</span>
+                </div>
+                <span className="font-bold text-emerald-600">22.8% (Healthy &lt;30%)</span>
+              </div>
+
+              <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200/80 flex items-center justify-between">
+                <div>
+                  <div className="flex items-center space-x-2">
+                    <span className="font-bold text-slate-900">Credit History Age</span>
+                    <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-blue-100 text-blue-700">MEDIUM IMPACT</span>
+                  </div>
+                  <span className="text-[11px] text-slate-500">Oldest active credit line opened in 2022</span>
+                </div>
+                <span className="font-bold text-slate-800 font-mono">3.4 Years</span>
+              </div>
+
+              <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200/80 flex items-center justify-between">
+                <div>
+                  <div className="flex items-center space-x-2">
+                    <span className="font-bold text-slate-900">Credit Mix & Active Accounts</span>
+                    <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-slate-200 text-slate-700">LOW IMPACT</span>
+                  </div>
+                  <span className="text-[11px] text-slate-500">1 Credit Card, 1 Primary Savings Account</span>
+                </div>
+                <span className="font-bold text-slate-800 font-mono">2 Accounts</span>
+              </div>
+
+              <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200/80 flex items-center justify-between">
+                <div>
+                  <div className="flex items-center space-x-2">
+                    <span className="font-bold text-slate-900">Recent Hard Enquiries</span>
+                    <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-slate-200 text-slate-700">LOW IMPACT</span>
+                  </div>
+                  <span className="text-[11px] text-slate-500">No new hard inquiries in the last 90 days</span>
+                </div>
+                <span className="font-bold text-emerald-600 font-mono">0 Enquiries</span>
+              </div>
+            </div>
+
+            <div className="mt-6 flex items-center justify-end space-x-3">
+              <button
+                type="button"
+                onClick={() => {
+                  alert('Authorized TransUnion CIBIL Report PDF downloaded.');
+                }}
+                className="px-4 py-2.5 rounded-xl border border-slate-300 text-slate-700 hover:bg-slate-50 text-xs font-semibold transition"
+              >
+                Download Full Bureau Report
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowCibilModal(false)}
+                className="px-5 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold transition shadow-xs"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* High-Yield Fixed Deposit Modal */}
+      {showFdModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white w-full max-w-lg rounded-3xl p-6 sm:p-7 shadow-2xl border border-slate-100 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between pb-4 border-b border-slate-100 mb-5">
+              <div className="flex items-center space-x-2.5">
+                <div className="w-9 h-9 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center">
+                  <PiggyBank className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-900">High-Yield Fixed Deposit</h3>
+                  <p className="text-xs text-slate-500">Guaranteed Return • DICGC Insured up to ₹5 Lakh</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowFdModal(false)}
+                className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {fdSuccessData ? (
+              /* Success Certificate View */
+              <div className="space-y-5 animate-in zoom-in-95 duration-200">
+                <div className="p-5 rounded-3xl bg-gradient-to-tr from-amber-950 via-slate-900 to-slate-950 text-white text-center shadow-xl border border-amber-500/30">
+                  <div className="w-12 h-12 rounded-full bg-amber-500 text-slate-950 flex items-center justify-center mx-auto mb-3 font-bold">
+                    <Check className="w-7 h-7" />
+                  </div>
+                  <h4 className="text-lg font-black text-white">Fixed Deposit Booked Successfully!</h4>
+                  <p className="text-xs text-amber-300 mt-0.5">Deposit Account: {fdSuccessData.id}</p>
+
+                  <div className="grid grid-cols-2 gap-2.5 mt-5 text-left text-xs bg-slate-900/80 p-3.5 rounded-2xl border border-slate-800">
+                    <div>
+                      <span className="text-[10px] text-slate-400 uppercase font-bold block">Principal</span>
+                      <span className="font-bold text-white font-mono">₹{fdSuccessData.principal.toLocaleString('en-IN')}</span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-slate-400 uppercase font-bold block">Interest Rate</span>
+                      <span className="font-bold text-amber-400 font-mono">{fdSuccessData.rate}% p.a.</span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-slate-400 uppercase font-bold block">Maturity Date</span>
+                      <span className="font-bold text-white">{fdSuccessData.maturityDate}</span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-slate-400 uppercase font-bold block">Maturity Value</span>
+                      <span className="font-bold text-emerald-400 font-mono">₹{fdSuccessData.maturityAmount.toLocaleString('en-IN')}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="p-3 bg-emerald-50 rounded-2xl border border-emerald-200 text-xs text-emerald-800 flex items-center space-x-2">
+                  <ShieldCheck className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                  <span>Backed by Reserve Bank of India & DICGC Insurance protection.</span>
+                </div>
+
+                <div className="flex items-center justify-end space-x-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => alert(`Fixed Deposit Certificate for ${fdSuccessData.id} downloaded.`)}
+                    className="px-4 py-2.5 rounded-xl border border-slate-300 text-slate-700 hover:bg-slate-50 text-xs font-semibold transition"
+                  >
+                    Download Certificate
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowFdModal(false)}
+                    className="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold transition"
+                  >
+                    Done
+                  </button>
+                </div>
+              </div>
+            ) : (
+              /* Booking & Calculator Form */
+              <div className="space-y-5">
+                {/* Available Balance Helper */}
+                <div className="flex items-center justify-between text-xs p-3 bg-slate-50 rounded-2xl border border-slate-200/80">
+                  <span className="text-slate-500">Savings Account Balance:</span>
+                  <span className="font-bold text-slate-900 font-mono">
+                    ₹{parseFloat(account?.balance || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                  </span>
+                </div>
+
+                {/* Amount Input */}
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">
+                      Deposit Amount (₹)
+                    </label>
+                    <span className="text-[11px] text-slate-400">Min ₹5,000</span>
+                  </div>
+                  <div className="relative">
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-base">₹</span>
+                    <input
+                      type="number"
+                      step="5000"
+                      min="5000"
+                      value={fdAmount}
+                      onChange={(e) => setFdAmount(Number(e.target.value))}
+                      className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-slate-200 text-base font-bold font-mono text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                    />
+                  </div>
+                  <div className="flex gap-2 mt-2">
+                    {[10000, 25000, 50000, 100000, 200000].map(amt => (
+                      <button
+                        key={amt}
+                        type="button"
+                        onClick={() => setFdAmount(amt)}
+                        className={`px-2 py-1 rounded-lg text-xs font-semibold border transition ${
+                          fdAmount === amt
+                            ? 'bg-amber-50 border-amber-400 text-amber-800'
+                            : 'border-slate-200 text-slate-600 hover:bg-slate-50'
+                        }`}
+                      >
+                        ₹{amt >= 100000 ? `${amt / 100000}L` : `${amt / 1000}k`}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Tenure Selection */}
+                <div>
+                  <label className="text-xs font-bold text-slate-700 uppercase tracking-wider block mb-1.5">
+                    Select Tenure & Return Rate
+                  </label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {[
+                      { months: 12, label: '1 Year', rate: '6.80% p.a.' },
+                      { months: 24, label: '2 Years', rate: '7.10% p.a.' },
+                      { months: 36, label: '3 Years (Popular)', rate: '7.25% p.a.' },
+                      { months: 60, label: '5 Yrs (Tax Saver)', rate: '7.40% p.a.' },
+                    ].map(ten => (
+                      <button
+                        key={ten.months}
+                        type="button"
+                        onClick={() => setFdTenureMonths(ten.months)}
+                        className={`p-2.5 rounded-xl border text-left transition ${
+                          fdTenureMonths === ten.months
+                            ? 'bg-amber-50 border-amber-500 text-amber-900 shadow-xs'
+                            : 'border-slate-200 text-slate-700 hover:bg-slate-50'
+                        }`}
+                      >
+                        <span className="text-xs font-bold block">{ten.label}</span>
+                        <span className="text-[11px] font-semibold text-amber-600 font-mono">{ten.rate}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Live Return Projection */}
+                {(() => {
+                  const { maturity, interest, rate } = calculateFdMaturity(parseFloat(fdAmount) || 0, fdTenureMonths);
+                  return (
+                    <div className="p-4 rounded-2xl bg-slate-900 text-white space-y-2">
+                      <div className="flex justify-between items-center text-xs text-slate-400">
+                        <span>Compounding Frequency:</span>
+                        <span className="font-semibold text-white">Quarterly Compounded</span>
+                      </div>
+                      <div className="flex justify-between items-baseline pt-2 border-t border-slate-800">
+                        <div>
+                          <span className="text-[10px] text-slate-400 uppercase font-bold block">Estimated Maturity Amount</span>
+                          <span className="text-2xl font-black text-white font-mono">
+                            ₹{maturity.toLocaleString('en-IN')}
+                          </span>
+                        </div>
+                        <div className="text-right">
+                          <span className="text-[10px] text-slate-400 uppercase font-bold block">Total Interest Earned</span>
+                          <span className="text-base font-bold text-emerald-400 font-mono">
+                            +₹{interest.toLocaleString('en-IN')}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                <div className="flex items-center justify-end space-x-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowFdModal(false)}
+                    className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 transition"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleBookFd}
+                    className="px-6 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold transition shadow-md"
+                  >
+                    Confirm & Book Fixed Deposit
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Pre-Approved Instant Personal Loan Modal */}
+      {showLoanModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white w-full max-w-lg rounded-3xl p-6 sm:p-7 shadow-2xl border border-slate-100 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between pb-4 border-b border-slate-100 mb-5">
+              <div className="flex items-center space-x-2.5">
+                <div className="w-9 h-9 rounded-xl bg-indigo-100 text-indigo-700 flex items-center justify-center">
+                  <Zap className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-900">Pre-Approved Instant Personal Loan</h3>
+                  <p className="text-xs text-slate-500">60-Second Disbursal • Zero Collateral • 10.49% p.a.</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowLoanModal(false)}
+                className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {loanSuccessData ? (
+              /* Disbursal Celebration Screen */
+              <div className="space-y-5 animate-in zoom-in-95 duration-200">
+                <div className="p-6 rounded-3xl bg-gradient-to-tr from-indigo-950 via-slate-900 to-slate-950 text-white text-center shadow-xl border border-indigo-500/30">
+                  <div className="w-14 h-14 rounded-full bg-emerald-500 text-white flex items-center justify-center mx-auto mb-3 shadow-lg shadow-emerald-500/30">
+                    <CheckCircle2 className="w-8 h-8" />
+                  </div>
+                  <h4 className="text-xl font-black text-white">Loan Disbursed Instantly!</h4>
+                  <p className="text-xs text-emerald-400 font-semibold mt-0.5">
+                    ₹{loanSuccessData.amount.toLocaleString('en-IN')} credited to your FIN Savings Account
+                  </p>
+                  <p className="text-[11px] text-slate-400 font-mono mt-1">Loan Account: {loanSuccessData.loanAccNumber}</p>
+
+                  <div className="grid grid-cols-2 gap-2.5 mt-5 text-left text-xs bg-slate-900/80 p-3.5 rounded-2xl border border-slate-800">
+                    <div>
+                      <span className="text-[10px] text-slate-400 uppercase font-bold block">Sanctioned Amount</span>
+                      <span className="font-bold text-white font-mono">₹{loanSuccessData.amount.toLocaleString('en-IN')}</span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-slate-400 uppercase font-bold block">Monthly EMI</span>
+                      <span className="font-bold text-indigo-400 font-mono">₹{loanSuccessData.emi.toLocaleString('en-IN')}/mo</span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-slate-400 uppercase font-bold block">Tenure</span>
+                      <span className="font-bold text-white">{loanSuccessData.tenureMonths} Months</span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-slate-400 uppercase font-bold block">Interest Rate</span>
+                      <span className="font-bold text-emerald-400 font-mono">{loanSuccessData.annualRate}% p.a.</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="p-3 bg-slate-100 rounded-2xl text-xs text-slate-600 flex items-center space-x-2">
+                  <Info className="w-4 h-4 text-slate-500 flex-shrink-0" />
+                  <span>First EMI auto-debit scheduled for the 5th of next month.</span>
+                </div>
+
+                <div className="flex items-center justify-end space-x-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowLoanModal(false);
+                      setLoanSuccessData(null);
+                    }}
+                    className="w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition shadow-xs"
+                  >
+                    View Updated Account Balance
+                  </button>
+                </div>
+              </div>
+            ) : (
+              /* Loan Customizer & Disbursal Screen */
+              <div className="space-y-5">
+                {/* Eligible Offer Callout */}
+                <div className="p-4 rounded-2xl bg-indigo-50 border border-indigo-200/80 flex items-center justify-between">
+                  <div>
+                    <span className="text-[10px] uppercase font-extrabold tracking-wider text-indigo-700 block">Pre-Approved Limit</span>
+                    <span className="text-xl font-black text-indigo-950 font-mono">₹5,00,000</span>
+                  </div>
+                  <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-indigo-600 text-white">
+                    INSTANT APPROVAL
+                  </span>
+                </div>
+
+                {/* Amount Customizer */}
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">
+                      Borrow Amount (₹)
+                    </label>
+                    <span className="text-xs font-mono font-bold text-indigo-600">
+                      ₹{loanAmount.toLocaleString('en-IN')}
+                    </span>
+                  </div>
+                  <input
+                    type="range"
+                    min="25000"
+                    max="500000"
+                    step="5000"
+                    value={loanAmount}
+                    onChange={(e) => setLoanAmount(Number(e.target.value))}
+                    className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
+                  />
+                  <div className="flex justify-between text-[10px] text-slate-400 mt-1 font-mono">
+                    <span>₹25,000</span>
+                    <span>₹2,50,000</span>
+                    <span>₹5,00,000</span>
+                  </div>
+                  <div className="flex gap-2 mt-2">
+                    {[50000, 100000, 200000, 500000].map(amt => (
+                      <button
+                        key={amt}
+                        type="button"
+                        onClick={() => setLoanAmount(amt)}
+                        className={`px-2 py-1 rounded-lg text-xs font-semibold border transition ${
+                          loanAmount === amt
+                            ? 'bg-indigo-50 border-indigo-400 text-indigo-800'
+                            : 'border-slate-200 text-slate-600 hover:bg-slate-50'
+                        }`}
+                      >
+                        ₹{amt >= 100000 ? `${amt / 100000}L` : `${amt / 1000}k`}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Tenure Selector */}
+                <div>
+                  <label className="text-xs font-bold text-slate-700 uppercase tracking-wider block mb-1.5">
+                    Repayment Tenure
+                  </label>
+                  <div className="grid grid-cols-4 gap-2">
+                    {[12, 24, 36, 48].map(m => (
+                      <button
+                        key={m}
+                        type="button"
+                        onClick={() => setLoanTenureMonths(m)}
+                        className={`py-2 px-1 rounded-xl border text-center transition ${
+                          loanTenureMonths === m
+                            ? 'bg-indigo-600 text-white border-indigo-600 font-bold shadow-xs'
+                            : 'border-slate-200 text-slate-700 hover:bg-slate-50 font-medium'
+                        }`}
+                      >
+                        <span className="text-xs">{m} Months</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Live EMI & Financial Transparency Breakdown */}
+                {(() => {
+                  const { emi, totalPayable, totalInterest } = calculateLoanEmi(loanAmount, loanTenureMonths);
+                  return (
+                    <div className="p-4 rounded-2xl bg-slate-900 text-white space-y-2">
+                      <div className="flex justify-between items-baseline">
+                        <div>
+                          <span className="text-[10px] text-slate-400 uppercase font-bold block">Monthly EMI</span>
+                          <span className="text-2xl font-black text-indigo-400 font-mono">
+                            ₹{emi.toLocaleString('en-IN')}<span className="text-xs font-normal text-slate-400">/mo</span>
+                          </span>
+                        </div>
+                        <div className="text-right">
+                          <span className="text-[10px] text-slate-400 uppercase font-bold block">Interest Rate</span>
+                          <span className="text-sm font-bold text-white font-mono">10.49% p.a. Reducing</span>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-3 gap-2 pt-2 border-t border-slate-800 text-[11px]">
+                        <div>
+                          <span className="text-slate-400 block text-[10px]">Principal</span>
+                          <span className="font-mono text-white">₹{loanAmount.toLocaleString('en-IN')}</span>
+                        </div>
+                        <div>
+                          <span className="text-slate-400 block text-[10px]">Total Interest</span>
+                          <span className="font-mono text-white">₹{totalInterest.toLocaleString('en-IN')}</span>
+                        </div>
+                        <div>
+                          <span className="text-slate-400 block text-[10px]">Processing Fee</span>
+                          <span className="font-mono text-emerald-400">₹0 (Waived)</span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                {/* Digital Lending Compliance Declaration */}
+                <div className="text-[11px] text-slate-500 space-y-1">
+                  <div className="flex items-center space-x-1.5">
+                    <CheckCircle className="w-3.5 h-3.5 text-emerald-500 flex-shrink-0" />
+                    <span>RBI Digital Lending Guidelines Compliant (No hidden charges)</span>
+                  </div>
+                  <div className="flex items-center space-x-1.5">
+                    <CheckCircle className="w-3.5 h-3.5 text-emerald-500 flex-shrink-0" />
+                    <span>Zero foreclosure fees after 6 on-time EMI repayments</span>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-end space-x-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowLoanModal(false)}
+                    className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 transition"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    disabled={loanProcessing}
+                    onClick={handleDisburseLoan}
+                    className="px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition shadow-md disabled:opacity-50 flex items-center space-x-2"
+                  >
+                    {loanProcessing ? (
+                      <>
+                        <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        <span>Disbursing Funds...</span>
+                      </>
+                    ) : (
+                      <span>Disburse ₹{loanAmount.toLocaleString('en-IN')} to Savings</span>
+                    )}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Wealth & Insurance Direct Products Modal */}
+      {showWealthModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white w-full max-w-xl rounded-3xl p-6 sm:p-7 shadow-2xl border border-slate-100 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between pb-4 border-b border-slate-100 mb-5">
+              <div className="flex items-center space-x-2.5">
+                <div className="w-9 h-9 rounded-xl bg-rose-100 text-rose-700 flex items-center justify-center">
+                  <Coins className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-900">Wealth & Insurance Protection</h3>
+                  <p className="text-xs text-slate-500">Zero Commission Mutual Funds & Comprehensive Coverage</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowWealthModal(false)}
+                className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {sipSuccessToast && (
+              <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-2xl text-xs text-emerald-800 font-semibold mb-4 flex items-center space-x-2 animate-in fade-in">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                <span>{sipSuccessToast}</span>
+              </div>
+            )}
+
+            {/* Curated Institutional Offerings */}
+            <div className="space-y-4 text-xs">
+              {/* Mutual Fund 1: Nifty 50 */}
+              <div className="p-4 rounded-2xl border border-slate-200/90 hover:border-slate-300 transition space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-blue-100 text-blue-700 uppercase">
+                      Index Fund • Direct Growth
+                    </span>
+                    <h4 className="text-sm font-bold text-slate-900 mt-1">FIN Nifty 50 Index Fund</h4>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-[10px] text-slate-400 block">3Y CAGR</span>
+                    <span className="text-sm font-black text-emerald-600 font-mono">+14.8%</span>
+                  </div>
+                </div>
+                <p className="text-[11px] text-slate-500">
+                  Tracks top 50 bluechip companies in India. Lowest expense ratio (0.15%), zero exit load after 30 days.
+                </p>
+                <div className="flex items-center justify-between pt-2 border-t border-slate-100">
+                  <span className="text-[11px] text-slate-500">Min Monthly SIP: ₹500</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSipSuccessToast('Monthly SIP of ₹1,000 in FIN Nifty 50 Index Fund scheduled on the 5th.');
+                      setTimeout(() => setSipSuccessToast(''), 4000);
+                    }}
+                    className="px-3 py-1.5 rounded-lg bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs transition"
+                  >
+                    Start ₹1,000/mo SIP
+                  </button>
+                </div>
+              </div>
+
+              {/* Insurance 1: Term Life */}
+              <div className="p-4 rounded-2xl border border-slate-200/90 hover:border-slate-300 transition space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-rose-100 text-rose-700 uppercase">
+                      Pure Term Life Protection
+                    </span>
+                    <h4 className="text-sm font-bold text-slate-900 mt-1">₹1 Crore Family Protection Cover</h4>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-[10px] text-slate-400 block">Premium</span>
+                    <span className="text-sm font-black text-slate-900 font-mono">₹650/mo</span>
+                  </div>
+                </div>
+                <p className="text-[11px] text-slate-500">
+                  99.4% claim settlement ratio, zero medical tests required for FIN Tier 3 KYC customers up to age 45.
+                </p>
+                <div className="flex items-center justify-between pt-2 border-t border-slate-100">
+                  <span className="text-[11px] text-slate-500">Tax exemption under Section 80C</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      alert('Policy inquiry generated. Insurance sanction document sent to registered email.');
+                    }}
+                    className="px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs transition"
+                  >
+                    Apply for Policy
+                  </button>
+                </div>
+              </div>
+
+              {/* Insurance 2: Health Cover */}
+              <div className="p-4 rounded-2xl border border-slate-200/90 hover:border-slate-300 transition space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-100 text-emerald-700 uppercase">
+                      Cashless Health Insurance
+                    </span>
+                    <h4 className="text-sm font-bold text-slate-900 mt-1">₹10 Lakh Super Top-Up Health Shield</h4>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-[10px] text-slate-400 block">Premium</span>
+                    <span className="text-sm font-black text-slate-900 font-mono">₹380/mo</span>
+                  </div>
+                </div>
+                <p className="text-[11px] text-slate-500">
+                  Zero co-payment, cashless settlement in 12,000+ network hospitals across India. Pre & post hospitalization covered.
+                </p>
+                <div className="flex items-center justify-between pt-2 border-t border-slate-100">
+                  <span className="text-[11px] text-slate-500">Tax benefit under Section 80D</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      alert('Health coverage application submitted. Hospital network passbook dispatched.');
+                    }}
+                    className="px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs transition"
+                  >
+                    Get Protected
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-6 flex items-center justify-end">
+              <button
+                type="button"
+                onClick={() => setShowWealthModal(false)}
+                className="px-5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition"
+              >
+                Done
+              </button>
+            </div>
           </div>
         </div>
       )}

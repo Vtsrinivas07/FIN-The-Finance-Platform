@@ -13,7 +13,8 @@ import {
   ShieldAlert,
   LogOut,
   Building2,
-  X
+  X,
+  Sparkles
 } from 'lucide-react';
 
 const Sidebar = ({ isOpen, onClose }) => {
@@ -29,7 +30,7 @@ const Sidebar = ({ isOpen, onClose }) => {
   const customerNavItems = [
     { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
     { name: 'Transfers', path: '/transfers', icon: ArrowLeftRight },
-    { name: 'Beneficiaries', path: '/beneficiaries', icon: Users },
+    { name: 'Financial Products & Health', path: '/products', icon: Sparkles },
     { name: 'Bill Payments', path: '/bills', icon: Receipt },
     { name: 'Cards', path: '/cards', icon: CreditCard },
     { name: 'Analytics', path: '/analytics', icon: PieChart },
@@ -39,8 +40,8 @@ const Sidebar = ({ isOpen, onClose }) => {
 
   const adminNavItems = [
     { name: 'Operations Hub', path: '/admin', icon: LayoutDashboard },
-    { name: 'Customer Directory & KYC', path: '/admin?tab=users', icon: Users },
-    { name: 'Transaction Monitor & AML', path: '/admin?tab=transactions', icon: ArrowLeftRight },
+    { name: 'Customer CIF Inquiry', path: '/admin?tab=users', icon: Users },
+    { name: 'Clearing & AML Inquiry', path: '/admin?tab=transactions', icon: ArrowLeftRight },
     { name: 'Security & Audit Trail', path: '/admin?tab=audit', icon: ShieldAlert },
     { name: 'System Settings', path: '/settings', icon: Settings },
   ];

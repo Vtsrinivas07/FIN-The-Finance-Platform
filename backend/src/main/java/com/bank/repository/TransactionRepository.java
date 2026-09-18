@@ -12,6 +12,7 @@ import org.springframework.stereotype.Repository;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Repository
@@ -20,6 +21,8 @@ public interface TransactionRepository extends JpaRepository<Transaction, UUID> 
     Page<Transaction> findByAccountOrderByCreatedAtDesc(Account account, Pageable pageable);
 
     List<Transaction> findTop10ByAccountOrderByCreatedAtDesc(Account account);
+
+    Optional<Transaction> findByReferenceNumber(String referenceNumber);
 
     @Query("SELECT t FROM Transaction t WHERE t.account = :account " +
            "AND (:type IS NULL OR t.type = :type) " +
