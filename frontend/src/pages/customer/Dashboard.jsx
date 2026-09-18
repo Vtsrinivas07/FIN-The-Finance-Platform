@@ -232,7 +232,7 @@ const Dashboard = () => {
           <div className="flex items-center justify-between mb-4">
             <div>
               <h2 className="text-base font-bold text-slate-900">Recent Transactions</h2>
-              <p className="text-xs text-slate-400">Latest simulated ledger entries</p>
+              <p className="text-xs text-slate-400">Latest account activity</p>
             </div>
             <button
               onClick={() => navigate('/transactions')}
@@ -315,10 +315,10 @@ const Dashboard = () => {
           <div className="p-5 rounded-3xl bg-indigo-50/70 border border-indigo-100 text-indigo-900">
             <div className="flex items-center space-x-2 text-brand-700 font-bold text-xs uppercase tracking-wider mb-1">
               <ShieldCheck className="w-4 h-4" />
-              <span>Fintech Safety</span>
+              <span>FIN Account Protection</span>
             </div>
             <p className="text-xs text-indigo-950/80 leading-relaxed mt-1">
-              All transactions are processed inside a secure simulated environment. Real bank accounts are never linked.
+              Protected by FIN Zero-Liability guarantee, multi-factor authentication, and end-to-end 256-bit transaction encryption.
             </p>
           </div>
         </div>
@@ -328,8 +328,8 @@ const Dashboard = () => {
       {showDepositModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in">
           <div className="bg-white w-full max-w-sm rounded-3xl p-6 shadow-2xl border border-slate-100">
-            <h3 className="text-lg font-bold text-slate-900 mb-1">Simulate Cash Deposit</h3>
-            <p className="text-xs text-slate-500 mb-4">Top up your educational balance instantly</p>
+            <h3 className="text-lg font-bold text-slate-900 mb-1">Add Money to Account</h3>
+            <p className="text-xs text-slate-500 mb-4">Instant fund deposit into your primary account</p>
 
             <form onSubmit={handleDeposit} className="space-y-4">
               <div>

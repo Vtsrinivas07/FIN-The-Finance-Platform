@@ -25,7 +25,7 @@ const Sidebar = ({ isOpen, onClose }) => {
     navigate('/login');
   };
 
-  const navItems = [
+  const customerNavItems = [
     { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
     { name: 'Transfers', path: '/transfers', icon: ArrowLeftRight },
     { name: 'Beneficiaries', path: '/beneficiaries', icon: Users },
@@ -36,20 +36,34 @@ const Sidebar = ({ isOpen, onClose }) => {
     { name: 'Settings', path: '/settings', icon: Settings },
   ];
 
-  if (isAdmin) {
-    navItems.push({ name: 'Admin Portal', path: '/admin', icon: ShieldAlert });
-  }
+  const adminNavItems = [
+    { name: 'Operations Console', path: '/admin', icon: LayoutDashboard },
+    { name: 'Customer Accounts', path: '/admin?tab=users', icon: Users },
+    { name: 'Transaction Monitor', path: '/admin?tab=transactions', icon: ArrowLeftRight },
+    { name: 'Security Audit Trail', path: '/admin?tab=audit', icon: ShieldAlert },
+    { name: 'System Settings', path: '/settings', icon: Settings },
+  ];
+
+  const navItems = isAdmin ? adminNavItems : customerNavItems;
 
   const sidebarContent = (
     <div className="flex flex-col h-full bg-slate-900 text-slate-300 w-64 border-r border-slate-800">
       {/* Brand Header */}
       <div className="flex items-center justify-between px-6 py-5 border-b border-slate-800">
-        <div className="flex items-center space-x-3 cursor-pointer" onClick={() => navigate('/dashboard')}>
+        <div
+          className="flex items-center space-x-3 cursor-pointer"
+          onClick={() => navigate(isAdmin ? '/admin' : '/dashboard')}
+        >
           <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 to-indigo-500 flex items-center justify-center text-white shadow-lg shadow-indigo-500/30">
             <Building2 className="w-5 h-5" />
           </div>
           <div>
             <span className="text-xl font-black tracking-wider text-white font-sans">FIN</span>
+            {isAdmin && (
+              <span className="text-[10px] uppercase tracking-widest text-brand-400 font-bold block -mt-1">
+                Admin Console
+              </span>
+            )}
           </div>
         </div>
         {onClose && (
@@ -62,13 +76,13 @@ const Sidebar = ({ isOpen, onClose }) => {
       {/* Navigation Links */}
       <div className="flex-1 py-6 px-4 space-y-1.5 overflow-y-auto">
         <div className="px-3 pb-2 text-[11px] font-semibold tracking-wider text-slate-400 uppercase">
-          Menu
+          {isAdmin ? 'Operations' : 'Banking Menu'}
         </div>
         {navItems.map((item) => {
           const Icon = item.icon;
           return (
             <NavLink
-              key={item.path}
+              key={item.name}
               to={item.path}
               onClick={onClose}
               className={({ isActive }) =>
@@ -91,11 +105,13 @@ const Sidebar = ({ isOpen, onClose }) => {
         <div className="flex items-center justify-between p-2 rounded-xl hover:bg-slate-800/50 transition">
           <div className="flex items-center space-x-3 overflow-hidden">
             <div className="w-9 h-9 rounded-full bg-brand-500/20 border border-brand-500/30 text-brand-400 flex items-center justify-center font-bold text-sm">
-              {user?.fullName?.charAt(0) || 'U'}
+              {user?.fullName?.charAt(0) || (isAdmin ? 'A' : 'U')}
             </div>
             <div className="truncate">
               <p className="text-sm font-semibold text-white truncate">{user?.fullName}</p>
-              <p className="text-xs text-slate-400 truncate">@{user?.username}</p>
+              <p className="text-xs text-slate-400 truncate">
+                {isAdmin ? 'System Administrator' : `@${user?.username}`}
+              </p>
             </div>
           </div>
           <button

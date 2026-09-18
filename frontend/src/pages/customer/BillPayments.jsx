@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import api from '../../services/api';
 import confetti from 'canvas-confetti';
+import CustomSelect from '../../components/common/CustomSelect';
 import {
   Zap,
   Droplets,
@@ -182,16 +183,12 @@ const BillPayments = () => {
               <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
                 Service Provider
               </label>
-              <select
+              <CustomSelect
+                options={providers.map((p) => ({ value: p.id, label: p.name }))}
                 value={selectedProvider}
-                onChange={(e) => setSelectedProvider(e.target.value)}
-                required
-                className="w-full px-4 py-2.5 rounded-2xl bg-slate-50 border border-slate-200 text-xs sm:text-sm text-slate-900 focus:border-brand-500 focus:bg-white focus:outline-none"
-              >
-                {providers.map((p) => (
-                  <option key={p.id} value={p.id}>{p.name}</option>
-                ))}
-              </select>
+                onChange={setSelectedProvider}
+                placeholder="Select service provider..."
+              />
             </div>
 
             <div>

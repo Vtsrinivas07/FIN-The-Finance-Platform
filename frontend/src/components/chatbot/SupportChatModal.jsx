@@ -114,7 +114,7 @@ const SupportChatModal = () => {
                 <h3 className="text-sm font-bold tracking-tight leading-tight">FIN Support</h3>
                 <p className="text-[11px] text-brand-300 flex items-center mt-0.5">
                   <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full mr-1.5 inline-block" />
-                  Grounded Banking Assistant
+                  24/7 Digital Banking Assistant
                 </p>
               </div>
             </div>
@@ -157,7 +157,7 @@ const SupportChatModal = () => {
             {loading && (
               <div className="flex items-center space-x-2 text-slate-400 text-xs pl-8">
                 <span className="animate-spin rounded-full h-3 w-3 border-2 border-brand-600 border-t-transparent" />
-                <span>Searching banking knowledge base...</span>
+                <span>FIN Assistant is replying...</span>
               </div>
             )}
             <div ref={messagesEndRef} />

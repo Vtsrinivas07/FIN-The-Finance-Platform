@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import api from '../../services/api';
 import {
   Users,
@@ -18,8 +19,17 @@ const AdminDashboard = () => {
   const [users, setUsers] = useState([]);
   const [transactions, setTransactions] = useState([]);
   const [auditLogs, setAuditLogs] = useState([]);
-  const [activeTab, setActiveTab] = useState('users');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const currentTab = searchParams.get('tab') || 'users';
+  const [activeTab, setActiveTab] = useState(currentTab);
   const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const tab = searchParams.get('tab');
+    if (tab && ['users', 'transactions', 'audit'].includes(tab)) {
+      setActiveTab(tab);
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     loadAdminData();
@@ -110,18 +120,18 @@ const AdminDashboard = () => {
         </div>
 
         <div className="p-5 rounded-3xl bg-white border border-slate-200/80 shadow-xs">
-          <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">Simulated Volume</span>
+          <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">Total Volume</span>
           <p className="text-2xl font-extrabold text-slate-900 mt-1">
             ₹{parseFloat(metrics?.totalTransactionVolume || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}
           </p>
-          <span className="text-[10px] text-brand-600 font-semibold mt-1 inline-block">Lifetime volume</span>
+          <span className="text-[10px] text-brand-600 font-semibold mt-1 inline-block">Platform Turnover</span>
         </div>
       </div>
 
       {/* Tabs */}
       <div className="flex space-x-2 border-b border-slate-200 pb-2">
         <button
-          onClick={() => setActiveTab('users')}
+          onClick={() => { setActiveTab('users'); setSearchParams({ tab: 'users' }); }}
           className={`px-4 py-2 rounded-xl text-xs font-bold transition ${
             activeTab === 'users' ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-100'
           }`}
@@ -129,7 +139,7 @@ const AdminDashboard = () => {
           Customer Management ({users.length})
         </button>
         <button
-          onClick={() => setActiveTab('transactions')}
+          onClick={() => { setActiveTab('transactions'); setSearchParams({ tab: 'transactions' }); }}
           className={`px-4 py-2 rounded-xl text-xs font-bold transition ${
             activeTab === 'transactions' ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-100'
           }`}
@@ -137,7 +147,7 @@ const AdminDashboard = () => {
           Transaction Monitor ({transactions.length})
         </button>
         <button
-          onClick={() => setActiveTab('audit')}
+          onClick={() => { setActiveTab('audit'); setSearchParams({ tab: 'audit' }); }}
           className={`px-4 py-2 rounded-xl text-xs font-bold transition ${
             activeTab === 'audit' ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-100'
           }`}

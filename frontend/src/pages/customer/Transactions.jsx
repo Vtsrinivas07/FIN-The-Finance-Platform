@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../../services/api';
+import CustomSelect from '../../components/common/CustomSelect';
 import {
   History,
   Search,
@@ -118,45 +119,48 @@ const Transactions = () => {
 
           {/* Type filter */}
           <div>
-            <select
+            <CustomSelect
+              options={[
+                { value: '', label: 'All Types' },
+                { value: 'CREDIT', label: 'Credits (+)' },
+                { value: 'DEBIT', label: 'Debits (-)' },
+              ]}
               value={type}
-              onChange={(e) => { setType(e.target.value); setPage(0); }}
-              className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 focus:border-brand-500 focus:outline-none"
-            >
-              <option value="">All Types (Credit & Debit)</option>
-              <option value="CREDIT">Credits (+)</option>
-              <option value="DEBIT">Debits (-)</option>
-            </select>
+              onChange={(val) => { setType(val); setPage(0); }}
+              placeholder="All Types"
+            />
           </div>
 
           {/* Category filter */}
           <div>
-            <select
+            <CustomSelect
+              options={[
+                { value: '', label: 'All Categories' },
+                { value: 'TRANSFER', label: 'Transfer' },
+                { value: 'BILL_PAYMENT', label: 'Bill Payment' },
+                { value: 'RECHARGE', label: 'Recharge' },
+                { value: 'DEPOSIT', label: 'Cash Deposit' },
+              ]}
               value={category}
-              onChange={(e) => { setCategory(e.target.value); setPage(0); }}
-              className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 focus:border-brand-500 focus:outline-none"
-            >
-              <option value="">All Categories</option>
-              <option value="TRANSFER">Transfer</option>
-              <option value="BILL_PAYMENT">Bill Payment</option>
-              <option value="RECHARGE">Recharge</option>
-              <option value="DEPOSIT">Cash Deposit</option>
-            </select>
+              onChange={(val) => { setCategory(val); setPage(0); }}
+              placeholder="All Categories"
+            />
           </div>
 
           {/* Status filter */}
           <div>
-            <select
+            <CustomSelect
+              options={[
+                { value: '', label: 'All Statuses' },
+                { value: 'SUCCESS', label: 'Success' },
+                { value: 'PENDING', label: 'Pending' },
+                { value: 'FAILED', label: 'Failed' },
+                { value: 'REVERSED', label: 'Reversed' },
+              ]}
               value={status}
-              onChange={(e) => { setStatus(e.target.value); setPage(0); }}
-              className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 focus:border-brand-500 focus:outline-none"
-            >
-              <option value="">All Statuses</option>
-              <option value="SUCCESS">Success</option>
-              <option value="PENDING">Pending</option>
-              <option value="FAILED">Failed</option>
-              <option value="REVERSED">Reversed</option>
-            </select>
+              onChange={(val) => { setStatus(val); setPage(0); }}
+              placeholder="All Statuses"
+            />
           </div>
         </div>
       </div>

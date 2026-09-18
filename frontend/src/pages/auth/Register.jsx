@@ -91,7 +91,7 @@ const Register = () => {
             Open a <span className="text-brand-400">FIN</span> Account
           </h2>
           <p className="mt-1 text-sm text-slate-400">
-            Instant digital setup with ₹1,000.00 educational balance included
+            Instant digital account opening with zero maintenance fees and instant activation
           </p>
         </div>
 

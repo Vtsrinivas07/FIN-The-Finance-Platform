@@ -52,6 +52,21 @@ const AdminRoute = ({ children }) => {
   return children;
 };
 
+const CustomerRoute = ({ children }) => {
+  const { loading, isAdmin } = useAuth();
+  if (loading) return null;
+  if (isAdmin) {
+    return <Navigate to="/admin" replace />;
+  }
+  return children;
+};
+
+const IndexRoute = () => {
+  const { loading, isAdmin } = useAuth();
+  if (loading) return null;
+  return <Navigate to={isAdmin ? "/admin" : "/dashboard"} replace />;
+};
+
 const App = () => {
   return (
     <AuthProvider>
@@ -70,14 +85,14 @@ const App = () => {
               </ProtectedRoute>
             }
           >
-            <Route index element={<Navigate to="/dashboard" replace />} />
-            <Route path="dashboard" element={<Dashboard />} />
-            <Route path="transfers" element={<Transfers />} />
-            <Route path="beneficiaries" element={<Beneficiaries />} />
-            <Route path="bills" element={<BillPayments />} />
-            <Route path="cards" element={<Cards />} />
-            <Route path="analytics" element={<Analytics />} />
-            <Route path="transactions" element={<Transactions />} />
+            <Route index element={<IndexRoute />} />
+            <Route path="dashboard" element={<CustomerRoute><Dashboard /></CustomerRoute>} />
+            <Route path="transfers" element={<CustomerRoute><Transfers /></CustomerRoute>} />
+            <Route path="beneficiaries" element={<CustomerRoute><Beneficiaries /></CustomerRoute>} />
+            <Route path="bills" element={<CustomerRoute><BillPayments /></CustomerRoute>} />
+            <Route path="cards" element={<CustomerRoute><Cards /></CustomerRoute>} />
+            <Route path="analytics" element={<CustomerRoute><Analytics /></CustomerRoute>} />
+            <Route path="transactions" element={<CustomerRoute><Transactions /></CustomerRoute>} />
             <Route path="settings" element={<Settings />} />
 
             {/* Admin Portal Route */}
@@ -92,7 +107,7 @@ const App = () => {
           </Route>
 
           {/* Fallback route */}
-          <Route path="*" element={<Navigate to="/dashboard" replace />} />
+          <Route path="*" element={<IndexRoute />} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>

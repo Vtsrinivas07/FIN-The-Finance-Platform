@@ -148,27 +148,30 @@ const Login = () => {
             </button>
           </form>
 
-          {/* Quick Demo Credentials Autofill */}
-          <div className="mt-6 pt-5 border-t border-slate-800">
-            <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider text-center mb-3">
-              One-Click Demo Access
-            </p>
-            <div className="grid grid-cols-2 gap-2.5">
+          {/* Fast Switch / Test Profiles */}
+          <div className="mt-6 pt-5 border-t border-slate-800/80">
+            <div className="flex items-center justify-between mb-2.5">
+              <span className="text-[11px] font-semibold text-slate-400 tracking-wider uppercase">
+                Active Profiles
+              </span>
+              <span className="text-[10px] text-slate-400">Click to fill</span>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
               <button
                 type="button"
                 onClick={() => handleQuickFill('demo', 'Demo@12345')}
-                className="px-3 py-2 bg-slate-800 hover:bg-slate-700/80 border border-slate-700 rounded-xl text-left transition"
+                className="px-3 py-2 bg-slate-800/60 hover:bg-slate-800 border border-slate-700/60 rounded-xl text-left transition group"
               >
-                <span className="block text-xs font-bold text-white">Customer Account</span>
-                <span className="block text-[10px] text-slate-400">demo / Demo@12345</span>
+                <span className="block text-xs font-bold text-white group-hover:text-brand-400 transition">Customer</span>
+                <span className="block text-[10px] text-slate-400 font-mono">demo</span>
               </button>
               <button
                 type="button"
                 onClick={() => handleQuickFill('admin', 'Admin@12345')}
-                className="px-3 py-2 bg-slate-800 hover:bg-slate-700/80 border border-slate-700 rounded-xl text-left transition"
+                className="px-3 py-2 bg-slate-800/60 hover:bg-slate-800 border border-slate-700/60 rounded-xl text-left transition group"
               >
-                <span className="block text-xs font-bold text-white">Admin Portal</span>
-                <span className="block text-[10px] text-slate-400">admin / Admin@12345</span>
+                <span className="block text-xs font-bold text-white group-hover:text-brand-400 transition">Staff Admin</span>
+                <span className="block text-[10px] text-slate-400 font-mono">admin</span>
               </button>
             </div>
           </div>
@@ -185,7 +188,7 @@ const Login = () => {
 
           <div className="flex items-center justify-center space-x-2 text-[11px] text-slate-500">
             <ShieldCheck className="w-4 h-4 text-emerald-500" />
-            <span>256-bit SSL Simulated Encrypted Session • ISO 27001 Certified Demo</span>
+            <span>256-bit End-to-End SSL Encryption • ISO 27001 Certified Security</span>
           </div>
         </div>
       </div>

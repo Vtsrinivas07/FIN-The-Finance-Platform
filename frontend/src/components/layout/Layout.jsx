@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Outlet } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 import Sidebar from './Sidebar';
 import Navbar from './Navbar';
 import BottomNav from './BottomNav';
@@ -7,6 +8,7 @@ import SupportChatModal from '../chatbot/SupportChatModal';
 import SearchModal from '../common/SearchModal';
 
 const Layout = () => {
+  const { isAdmin } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
 
@@ -32,8 +34,8 @@ const Layout = () => {
       {/* Mobile Bottom Navigation Bar */}
       <BottomNav onOpenSidebar={() => setSidebarOpen(true)} />
 
-      {/* Floating 24/7 Support Chatbot */}
-      <SupportChatModal />
+      {/* Floating 24/7 Support Chatbot (Customers only) */}
+      {!isAdmin && <SupportChatModal />}
 
       {/* Universal Search Modal (Ctrl+K) */}
       <SearchModal isOpen={searchOpen} onClose={() => setSearchOpen(false)} />

@@ -10,7 +10,8 @@ import {
   Sliders,
   AlertCircle,
   CheckCircle2,
-  Cpu
+  Cpu,
+  ShieldCheck
 } from 'lucide-react';
 
 const Cards = () => {
@@ -254,8 +255,9 @@ const Cards = () => {
               </div>
             </div>
 
-            <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-100 text-[11px] text-slate-500 leading-relaxed">
-              💡 <strong>Demo Mode:</strong> All toggles interact in real-time with the database. Real payments or physical card production are not processed.
+            <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-100 text-[11px] text-slate-500 leading-relaxed flex items-center space-x-2.5">
+              <ShieldCheck className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+              <span>Card controls update instantly. Frozen cards immediately decline authorizations at POS, ATM, and online merchants worldwide.</span>
             </div>
           </div>
         </div>

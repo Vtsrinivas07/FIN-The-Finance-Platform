@@ -297,7 +297,7 @@ const Transfers = () => {
               </div>
               <div className="flex justify-between text-slate-600">
                 <span>Processing Mode:</span>
-                <span className="font-semibold text-emerald-600">Simulated Instant Transfer</span>
+                <span className="font-semibold text-emerald-600">Instant Real-Time Settlement</span>
               </div>
             </div>
 

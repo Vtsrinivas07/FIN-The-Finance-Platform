@@ -45,7 +45,7 @@ const Analytics = () => {
       <div>
         <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">Spending & Financial Analytics</h1>
         <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
-          Real-time analysis of simulated cashflow, monthly trends, and categories
+          Real-time analysis of account cashflow, monthly trends, and expense categories
         </p>
       </div>
 
