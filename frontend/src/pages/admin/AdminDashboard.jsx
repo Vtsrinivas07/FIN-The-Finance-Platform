@@ -167,47 +167,6 @@ const AdminDashboard = () => {
       {/* Tab 0: Operations Console Overview */}
       {activeTab === 'overview' && (
         <div className="space-y-6">
-          {/* System Health Status */}
-          <div className="p-5 rounded-3xl bg-slate-900 text-white shadow-sm">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-800">
-              <div className="flex items-center space-x-2.5">
-                <div className="w-3 h-3 rounded-full bg-emerald-400 animate-pulse" />
-                <h3 className="text-sm font-bold text-white">System Infrastructure & Compliance</h3>
-              </div>
-              <span className="text-xs text-slate-400 font-mono">FIN-OPS-NODE-01 • LATENCY &lt; 5ms</span>
-            </div>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4 text-xs">
-              <div className="p-3 rounded-2xl bg-slate-800/60 border border-slate-700/50">
-                <span className="text-[10px] uppercase font-bold text-slate-400 block">Ledger Database</span>
-                <p className="font-semibold text-emerald-400 mt-1 flex items-center space-x-1">
-                  <CheckCircle className="w-3.5 h-3.5 inline mr-1" />
-                  <span>ONLINE / SYNCED</span>
-                </p>
-              </div>
-              <div className="p-3 rounded-2xl bg-slate-800/60 border border-slate-700/50">
-                <span className="text-[10px] uppercase font-bold text-slate-400 block">JWT Auth Engine</span>
-                <p className="font-semibold text-emerald-400 mt-1 flex items-center space-x-1">
-                  <CheckCircle className="w-3.5 h-3.5 inline mr-1" />
-                  <span>SECURE (HS256)</span>
-                </p>
-              </div>
-              <div className="p-3 rounded-2xl bg-slate-800/60 border border-slate-700/50">
-                <span className="text-[10px] uppercase font-bold text-slate-400 block">Fraud Sentinel</span>
-                <p className="font-semibold text-emerald-400 mt-1 flex items-center space-x-1">
-                  <CheckCircle className="w-3.5 h-3.5 inline mr-1" />
-                  <span>MONITORING ACTIVE</span>
-                </p>
-              </div>
-              <div className="p-3 rounded-2xl bg-slate-800/60 border border-slate-700/50">
-                <span className="text-[10px] uppercase font-bold text-slate-400 block">Chatbot Engine</span>
-                <p className="font-semibold text-brand-400 mt-1 flex items-center space-x-1">
-                  <Activity className="w-3.5 h-3.5 inline mr-1" />
-                  <span>GROUNDED AI READY</span>
-                </p>
-              </div>
-            </div>
-          </div>
-
           {/* Quick Previews: Customer Accounts & Transactions */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Recent Customers Preview */}

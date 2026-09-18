@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { Menu, Search, Bell, CheckCheck, ShieldCheck, ChevronRight } from 'lucide-react';
+import { Menu, Search, Bell, CheckCheck, ChevronRight } from 'lucide-react';
 import api from '../../services/api';
 
 const Navbar = ({ onOpenSidebar, onOpenSearch }) => {
@@ -68,23 +68,17 @@ const Navbar = ({ onOpenSidebar, onOpenSearch }) => {
           className="flex items-center space-x-2.5 px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200/80 text-slate-500 text-sm w-48 sm:w-72 transition text-left group"
         >
           <Search className="w-4 h-4 text-slate-400 group-hover:text-slate-600" />
-          <span className="flex-1 truncate">Search transfers, bills, FAQs...</span>
+          <span className="flex-1 truncate">
+            {user?.role === 'ROLE_ADMIN' ? 'Search users, transactions, audit...' : 'Search transfers, bills, FAQs...'}
+          </span>
           <kbd className="hidden sm:inline-block px-1.5 py-0.5 text-[10px] font-semibold text-slate-400 bg-white border border-slate-200 rounded shadow-xs">
             Ctrl+K
           </kbd>
         </button>
       </div>
 
-      {/* Right section: Educational demo pill, Notification Center, User Profile */}
+      {/* Right section: Notification Center, User Profile */}
       <div className="flex items-center space-x-3 sm:space-x-4">
-        {/* Admin Console Badge (Admin only) */}
-        {user?.role === 'ROLE_ADMIN' && (
-          <div className="hidden lg:flex items-center space-x-1.5 px-3 py-1 rounded-full bg-slate-900 border border-slate-700 text-brand-400 text-xs font-semibold">
-            <ShieldCheck className="w-3.5 h-3.5 text-brand-400" />
-            <span>FIN Operations Console</span>
-          </div>
-        )}
-
         {/* Notifications Popover */}
         <div className="relative">
           <button
