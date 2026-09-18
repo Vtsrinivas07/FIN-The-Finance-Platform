@@ -88,7 +88,7 @@ const Register = () => {
             <Building2 className="w-6 h-6" />
           </div>
           <h2 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
-            Open an <span className="text-brand-400">AURA</span> Account
+            Open a <span className="text-brand-400">FIN</span> Account
           </h2>
           <p className="mt-1 text-sm text-slate-400">
             Instant digital setup with ₹1,000.00 educational balance included

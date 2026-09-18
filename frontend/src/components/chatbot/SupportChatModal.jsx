@@ -17,7 +17,7 @@ const SupportChatModal = () => {
     {
       id: 1,
       sender: 'BOT',
-      text: "Hello! Welcome to AURA Support. How can we assist you with your banking needs today?",
+      text: "Hello! Welcome to FIN Support. How can we assist you with your banking needs today?",
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     }
   ]);
@@ -111,7 +111,7 @@ const SupportChatModal = () => {
                 <Bot className="w-5 h-5" />
               </div>
               <div>
-                <h3 className="text-sm font-bold tracking-tight leading-tight">AURA Support</h3>
+                <h3 className="text-sm font-bold tracking-tight leading-tight">FIN Support</h3>
                 <p className="text-[11px] text-brand-300 flex items-center mt-0.5">
                   <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full mr-1.5 inline-block" />
                   Grounded Banking Assistant

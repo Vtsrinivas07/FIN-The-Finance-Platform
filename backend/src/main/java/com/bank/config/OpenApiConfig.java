@@ -18,9 +18,9 @@ public class OpenApiConfig {
         final String securitySchemeName = "bearerAuth";
         return new OpenAPI()
                 .info(new Info()
-                        .title("Online Banking System API")
+                        .title("FIN — Digital Banking System API")
                         .version("1.0.0")
-                        .description("Modern Educational & Demo Digital Banking REST API Platform")
+                        .description("FIN Modern Educational & Demo Digital Banking REST API Platform")
                         .contact(new Contact().name("Digital Banking Engineering Team"))
                         .license(new License().name("MIT License")))
                 .addSecurityItem(new SecurityRequirement().addList(securitySchemeName))

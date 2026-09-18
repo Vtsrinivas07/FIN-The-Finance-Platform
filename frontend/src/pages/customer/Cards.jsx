@@ -105,8 +105,8 @@ const Cards = () => {
               {/* Card Top: Bank name & Contactless */}
               <div className="flex items-center justify-between relative z-10">
                 <div className="flex items-center space-x-2">
-                  <div className="w-6 h-6 rounded-lg bg-white/20 flex items-center justify-center font-bold text-xs">A</div>
-                  <span className="text-xs font-extrabold tracking-widest uppercase">AURA BANK</span>
+                  <div className="w-6 h-6 rounded-lg bg-white/20 flex items-center justify-center font-bold text-xs">F</div>
+                  <span className="text-xs font-extrabold tracking-widest uppercase">FIN</span>
                 </div>
                 <div className="flex items-center space-x-2">
                   <Wifi className="w-5 h-5 text-slate-300 rotate-90" />

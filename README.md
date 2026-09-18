@@ -1,4 +1,4 @@
-# AURA BANK — Modern Digital Banking Platform
+# FIN — Modern Digital Banking Platform
 
 > **Educational & Demonstration Notice:**  
 > **This is an educational/demo banking application and does not process real financial transactions.** All account balances, transactions, debit cards, utilities, and funds movements are simulated within a secure software environment.
@@ -7,7 +7,7 @@
 
 ## 1. Project Overview
 
-**AURA BANK** is an end-to-end, production-style digital banking platform designed to simulate modern retail fintech operations. Engineered with a **Spring Boot 3 (Java 20/21)** backend, **PostgreSQL / H2** persistence with strict double-entry ledger bookkeeping, and a responsive **React 18 + Vite + Tailwind CSS** frontend, the system delivers an authentic digital banking experience.
+**FIN** is an end-to-end, production-style digital banking platform designed to simulate modern retail fintech operations. Engineered with a **Spring Boot 3 (Java 20/21)** backend, **PostgreSQL / H2** persistence with strict double-entry ledger bookkeeping, and a responsive **React 18 + Vite + Tailwind CSS** frontend, the system delivers an authentic digital banking experience.
 
 Key features include simulated peer-to-peer transfers with ACID rollback guarantees, utility bill payments across 6 major sectors, prepaid mobile/DTH recharges, real-time card channel controls (freeze/unfreeze, online/contactless/international toggles), spending analytics, universal search (`Ctrl+K`), an unread-tracked notification center, a 24/7 grounded support FAQ chatbot, and an administrative governance console.
 
@@ -415,7 +415,7 @@ mvn clean test
 
 ## 11. Resume-Ready Project Description
 
-> **AURA Bank — Production-Grade Digital Banking Platform (Java Full-Stack)**  
+> **FIN — Production-Grade Digital Banking Platform (Java Full-Stack)**  
 > *Technologies: Java 21, Spring Boot 3, Spring Security, JWT, PostgreSQL, Spring Data JPA, React 18, Vite, Tailwind CSS, Docker, JUnit 5*
 > - Engineered a full-stack digital banking application featuring double-entry ledger bookkeeping, peer-to-peer transfers, and utility bill settlements.
 > - Implemented stateless authentication using Spring Security 6 and JWT, with role-based access control (`ROLE_CUSTOMER`, `ROLE_ADMIN`) and BCrypt password encryption.
@@ -429,7 +429,7 @@ mvn clean test
 ## 12. Interview Talking Points
 
 - **Why Double-Entry Ledger Bookkeeping?**  
-  *In single-entry systems, balances can get out of sync if an operation fails midway. In AURA Bank, peer transfers generate linked DEBIT and CREDIT transaction records inside an atomic `@Transactional` block, ensuring no money is created or destroyed.*
+  *In single-entry systems, balances can get out of sync if an operation fails midway. In FIN, peer transfers generate linked DEBIT and CREDIT transaction records inside an atomic `@Transactional` block, ensuring no money is created or destroyed.*
 - **Why BigDecimal Over Double?**  
   *Floating-point numbers in Java (IEEE 754) suffer from rounding inaccuracies (e.g., `0.1 + 0.2 != 0.3`). In financial software, `BigDecimal` guarantees arbitrary-precision arithmetic.*
 - **Security in Depth:**  

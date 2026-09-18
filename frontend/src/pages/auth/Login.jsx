@@ -57,7 +57,7 @@ const Login = () => {
             <Building2 className="w-7 h-7" />
           </div>
           <h2 className="text-3xl font-extrabold text-white tracking-tight font-sans">
-            AURA <span className="text-brand-400 font-light">BANK</span>
+            FIN
           </h2>
           <p className="mt-2 text-sm text-slate-400">
             Sign in to access your digital banking account

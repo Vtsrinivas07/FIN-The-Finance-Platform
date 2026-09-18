@@ -49,8 +49,7 @@ const Sidebar = ({ isOpen, onClose }) => {
             <Building2 className="w-5 h-5" />
           </div>
           <div>
-            <span className="text-xl font-bold tracking-tight text-white font-sans">AURA</span>
-            <span className="text-xs ml-1 font-semibold text-brand-400 uppercase tracking-wider block -mt-1">BANK</span>
+            <span className="text-xl font-black tracking-wider text-white font-sans">FIN</span>
           </div>
         </div>
         {onClose && (

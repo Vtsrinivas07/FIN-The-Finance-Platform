@@ -147,7 +147,7 @@ public class DataInitializationService implements CommandLineRunner {
                         .user(demoUser)
                         .beneficiaryAccountNumber(sarahAccount.getAccountNumber())
                         .beneficiaryName(sarah.getFullName())
-                        .bankName("Digital Bank")
+                        .bankName("FIN")
                         .ifscCode("BANK0001001")
                         .status(Beneficiary.BeneficiaryStatus.ACTIVE)
                         .build();
@@ -225,7 +225,7 @@ public class DataInitializationService implements CommandLineRunner {
                             "Navigate to 'Transactions' from your sidebar to see your complete transaction history. You can filter by date, category, or amount, and export or download your statement.",
                             "statement download statement transaction history ledger account activity"),
                     new SupportFAQ(null, "GENERAL", "Is this a real banking system?",
-                            "No, this is an educational and demo digital banking application designed for learning. All monetary balances and transactions are simulated.",
+                            "FIN is an educational and demo digital banking application designed for learning. All monetary balances and transactions are simulated.",
                             "real bank real money simulation demo education educational")
             );
             supportFAQRepository.saveAll(faqs);
