@@ -21,6 +21,7 @@ public class SupportChatService {
     private final SupportFAQRepository faqRepository;
     private final ChatSessionRepository chatSessionRepository;
     private final ChatMessageRepository chatMessageRepository;
+    private final AiChatService aiChatService;
 
     @Transactional(readOnly = true)
     public List<SupportFAQResponse> getFaqs(String category) {
@@ -135,7 +136,20 @@ public class SupportChatService {
             return "You can change your password securely by navigating to 'Settings' > 'Security' in your dashboard navigation.";
         }
 
-        // 6. Stop-words filter to prevent spurious substring matching
+        // 6. Generative AI Engine (Google Gemini / OpenAI) if configured
+        if (aiChatService.isAiConfigured()) {
+            try {
+                String bankingContext = buildBankingGroundingContext();
+                String aiAnswer = aiChatService.generateAiAnswer(raw, bankingContext);
+                if (aiAnswer != null && !aiAnswer.isBlank()) {
+                    return aiAnswer;
+                }
+            } catch (Exception ignored) {
+                // Fallback to local grounded matcher
+            }
+        }
+
+        // 7. Stop-words filter to prevent spurious substring matching
         Set<String> stopWords = Set.of(
                 "a", "about", "all", "an", "and", "are", "as", "at", "be", "by", "can", "do", "for",
                 "from", "get", "how", "i", "in", "is", "it", "me", "my", "of", "on", "or", "so",
@@ -167,6 +181,25 @@ public class SupportChatService {
         }
 
         return "I couldn't find an exact match for that question. You can ask me about money transfers, card controls, bill payments, or statements, or check the quick topics below.";
+    }
+
+    private String buildBankingGroundingContext() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("Verified FIN Banking Services & FAQs:\n");
+        List<SupportFAQ> faqs = faqRepository.findAll();
+        for (SupportFAQ faq : faqs) {
+            sb.append("Q: ").append(faq.getQuestion()).append(" | A: ").append(faq.getAnswer()).append("\n");
+        }
+        sb.append("\nApp Navigation Guide:\n")
+          .append("- Dashboard: View account balances, recent ledger activity, and add funds.\n")
+          .append("- Transfers: Send money to saved beneficiaries or new 12-digit account numbers with atomic double-entry bookkeeping.\n")
+          .append("- Beneficiaries: Manage saved payees with IFSC and account numbers.\n")
+          .append("- Bill Payments: Pay electricity, water, gas, internet bills, and recharge mobile/DTH subscriptions.\n")
+          .append("- Cards: Freeze/unfreeze debit cards, toggle contactless/online/international channels, and adjust daily spending limits.\n")
+          .append("- Analytics: Track monthly cashflow, savings rates, and expense category breakdown.\n")
+          .append("- Transactions: Search, filter, and export transaction statements.\n")
+          .append("- Settings: Profile details, security, and password updates.\n");
+        return sb.toString();
     }
 
     private SupportFAQResponse mapFaqToResponse(SupportFAQ f) {
