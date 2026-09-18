@@ -77,16 +77,11 @@ const Navbar = ({ onOpenSidebar, onOpenSearch }) => {
 
       {/* Right section: Educational demo pill, Notification Center, User Profile */}
       <div className="flex items-center space-x-3 sm:space-x-4">
-        {/* Network / Status Indicator */}
-        {user?.role === 'ROLE_ADMIN' ? (
+        {/* Admin Console Badge (Admin only) */}
+        {user?.role === 'ROLE_ADMIN' && (
           <div className="hidden lg:flex items-center space-x-1.5 px-3 py-1 rounded-full bg-slate-900 border border-slate-700 text-brand-400 text-xs font-semibold">
             <ShieldCheck className="w-3.5 h-3.5 text-brand-400" />
             <span>FIN Operations Console</span>
-          </div>
-        ) : (
-          <div className="hidden lg:flex items-center space-x-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-medium">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-            <span>Live Banking Network</span>
           </div>
         )}
 
