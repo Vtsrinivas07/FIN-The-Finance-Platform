@@ -1,5 +1,5 @@
 import React from 'react';
-import { NavLink, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import {
   LayoutDashboard,
@@ -19,6 +19,7 @@ import {
 const Sidebar = ({ isOpen, onClose }) => {
   const { user, logout, isAdmin } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const handleLogout = () => {
     logout();
@@ -45,6 +46,31 @@ const Sidebar = ({ isOpen, onClose }) => {
   ];
 
   const navItems = isAdmin ? adminNavItems : customerNavItems;
+
+  const isItemActive = (itemPath) => {
+    const currentPath = location.pathname;
+    const currentSearch = location.search;
+
+    if (itemPath.includes('?')) {
+      const [itemBasePath, itemQuery] = itemPath.split('?');
+      if (currentPath !== itemBasePath) return false;
+      const itemParams = new URLSearchParams(itemQuery);
+      const currentParams = new URLSearchParams(currentSearch);
+      for (const [key, value] of itemParams.entries()) {
+        if (currentParams.get(key) !== value) return false;
+      }
+      return true;
+    }
+
+    if (itemPath === '/admin') {
+      if (currentPath !== '/admin') return false;
+      const currentParams = new URLSearchParams(currentSearch);
+      const tab = currentParams.get('tab');
+      return !tab || tab === 'overview';
+    }
+
+    return currentPath === itemPath;
+  };
 
   const sidebarContent = (
     <div className="flex flex-col h-full bg-slate-900 text-slate-300 w-64 border-r border-slate-800">
@@ -80,22 +106,21 @@ const Sidebar = ({ isOpen, onClose }) => {
         </div>
         {navItems.map((item) => {
           const Icon = item.icon;
+          const isActive = isItemActive(item.path);
           return (
-            <NavLink
+            <Link
               key={item.name}
               to={item.path}
               onClick={onClose}
-              className={({ isActive }) =>
-                `flex items-center px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 group ${
-                  isActive
-                    ? 'bg-brand-600 text-white shadow-md shadow-brand-600/20'
-                    : 'text-slate-400 hover:bg-slate-800/70 hover:text-white'
-                }`
-              }
+              className={`flex items-center px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 group ${
+                isActive
+                  ? 'bg-brand-600 text-white shadow-md shadow-brand-600/20'
+                  : 'text-slate-400 hover:bg-slate-800/70 hover:text-white'
+              }`}
             >
               <Icon className="w-5 h-5 mr-3 transition-transform group-hover:scale-110" />
               {item.name}
-            </NavLink>
+            </Link>
           );
         })}
       </div>
