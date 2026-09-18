@@ -38,10 +38,10 @@ const Sidebar = ({ isOpen, onClose }) => {
   ];
 
   const adminNavItems = [
-    { name: 'Operations Console', path: '/admin', icon: LayoutDashboard },
-    { name: 'Customer Accounts', path: '/admin?tab=users', icon: Users },
-    { name: 'Transaction Monitor', path: '/admin?tab=transactions', icon: ArrowLeftRight },
-    { name: 'Security Audit Trail', path: '/admin?tab=audit', icon: ShieldAlert },
+    { name: 'Operations Hub', path: '/admin', icon: LayoutDashboard },
+    { name: 'Customer Directory & KYC', path: '/admin?tab=users', icon: Users },
+    { name: 'Transaction Monitor & AML', path: '/admin?tab=transactions', icon: ArrowLeftRight },
+    { name: 'Security & Audit Trail', path: '/admin?tab=audit', icon: ShieldAlert },
     { name: 'System Settings', path: '/settings', icon: Settings },
   ];
 
@@ -102,7 +102,7 @@ const Sidebar = ({ isOpen, onClose }) => {
       {/* Navigation Links */}
       <div className="flex-1 py-6 px-4 space-y-1.5 overflow-y-auto">
         <div className="px-3 pb-2 text-[11px] font-semibold tracking-wider text-slate-400 uppercase">
-          {isAdmin ? 'Operations' : 'Banking Menu'}
+          {isAdmin ? 'Bank Operations' : 'Banking Menu'}
         </div>
         {navItems.map((item) => {
           const Icon = item.icon;
@@ -135,7 +135,7 @@ const Sidebar = ({ isOpen, onClose }) => {
             <div className="truncate">
               <p className="text-sm font-semibold text-white truncate">{user?.fullName}</p>
               <p className="text-xs text-slate-400 truncate">
-                {isAdmin ? 'System Administrator' : `@${user?.username}`}
+                {isAdmin ? 'Operations Admin' : `@${user?.username}`}
               </p>
             </div>
           </div>

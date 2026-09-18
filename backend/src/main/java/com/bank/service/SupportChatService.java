@@ -109,7 +109,7 @@ public class SupportChatService {
         // 1. Conversational Greetings
         Set<String> greetings = Set.of("hi", "hello", "hey", "hola", "namaste", "greetings", "hey there", "hi there", "good morning", "good afternoon", "good evening", "howdy");
         if (greetings.contains(normalized) || normalized.matches("^(hi|hello|hey)\\b.*")) {
-            return "Hello! Welcome to FIN Customer Support. How can I assist you today? You can ask about money transfers, card controls, bill payments, account balances, or statements.";
+            return "Hello! Welcome to FIN Customer Support. How can I assist you today? You can ask about money transfers, card controls, bill payments, statements, or banking security.";
         }
 
         // 2. Appreciation & Courtesies
@@ -128,16 +128,34 @@ public class SupportChatService {
             return "I can assist you with:\n• Sending money & managing beneficiaries\n• Card security (freezing/unfreezing, spending limits)\n• Paying utility bills & telecom recharges\n• Checking statements & transaction history\n• Account security and password updates\n\nWhat would you like help with?";
         }
 
-        // 5. Security Guardrails: Prohibit money movement directly through chat
+        // 5. Strict Banking Compliance Guardrails: Zero Credentials, Zero Balances/Amounts in Chat
+        if (normalized.contains("password") || normalized.contains("pin") || normalized.contains("otp") || normalized.contains("cvv") || normalized.contains("credential") || normalized.contains("secret")) {
+            return "FIN Security Alert: FIN will never display, request, or process your password, PIN, OTP, or CVV in chat. For security reasons, never share your credentials. To update your password securely, navigate to 'Settings' > 'Security'.";
+        }
+
         if (normalized.contains("transfer") && (normalized.contains("send money") || normalized.contains("transfer to") || normalized.contains("pay to") || normalized.matches(".*\\b\\d{3,}\\b.*"))) {
             return "For your security, fund transfers cannot be executed directly through chat. Please navigate to the 'Transfers' tab in your sidebar to safely send money.";
         }
 
-        if (normalized.contains("password") && (normalized.contains("change") || normalized.contains("reset") || normalized.contains("forgot"))) {
-            return "You can change your password securely by navigating to 'Settings' > 'Security' in your dashboard navigation.";
+        // Strict Balance & Amount Protection (RBI / GLBA / PCI-DSS Privacy Standard)
+        boolean isBalanceInquiry = normalized.contains("balance") ||
+                (normalized.contains("how much") && (normalized.contains("account") || normalized.contains("savings") || normalized.contains("have") || normalized.contains("money") || normalized.contains("balance"))) ||
+                normalized.contains("my money") || normalized.contains("exact money") || normalized.contains("how much money") ||
+                normalized.equals("savings account") || normalized.equals("check balance") || normalized.equals("my balance") || normalized.contains("account amount") || normalized.contains("show amount");
+
+        if (isBalanceInquiry) {
+            return "For your privacy and security compliance, sensitive financial data such as account balances and monetary amounts are never displayed in chat transcripts. You can securely view your real-time balance anytime on your Dashboard balance card or under Accounts.";
         }
 
-        // 6. Generative AI Engine (Google Gemini / OpenAI) with personalized grounding context
+        if (normalized.contains("account number") && (normalized.contains("what is") || normalized.contains("show") || normalized.contains("tell"))) {
+            return "For your security, full account numbers are never displayed in chat. You can view your masked account details securely on your Dashboard.";
+        }
+
+        if (normalized.contains("card number") || normalized.contains("card details")) {
+            return "For your protection, card numbers and CVVs are never shown in chat. You can view and manage your debit card securely in the 'Cards' tab.";
+        }
+
+        // 6. Generative AI Engine (Google Gemini / OpenAI) with privacy-sanitized grounding context
         if (aiChatService.isAiConfigured()) {
             try {
                 String bankingContext = buildBankingGroundingContext(user);
@@ -148,27 +166,6 @@ public class SupportChatService {
             } catch (Exception ignored) {
                 // Fallback to local grounded matcher
             }
-        }
-
-        // 7. Local Grounded Balance Inquiry
-        boolean isBalanceInquiry = normalized.contains("balance") ||
-                (normalized.contains("how much") && (normalized.contains("account") || normalized.contains("savings") || normalized.contains("have") || normalized.contains("money"))) ||
-                normalized.equals("savings account") || normalized.equals("check balance") || normalized.equals("my balance");
-
-        if (isBalanceInquiry) {
-            if (user != null && accountRepository != null) {
-                List<Account> userAccounts = accountRepository.findByUser(user);
-                if (!userAccounts.isEmpty()) {
-                    StringBuilder reply = new StringBuilder("Here are your current FIN account balance details:\n");
-                    for (Account acc : userAccounts) {
-                        String maskedAcc = maskAccountNumber(acc.getAccountNumber());
-                        reply.append(String.format("• %s Account (%s): ₹%,.2f [%s]\n",
-                                acc.getAccountType(), maskedAcc, acc.getBalance(), acc.getStatus()));
-                    }
-                    return reply.toString().trim();
-                }
-            }
-            return "To check your live savings account balance, please log in to your FIN customer account or view your dashboard balance card.";
         }
 
         // 8. Stop-words filter to prevent spurious substring matching
@@ -202,7 +199,7 @@ public class SupportChatService {
             }
         }
 
-        return "I couldn't find an exact match for that question. You can ask me about money transfers, card controls, bill payments, account balances, or statements, or check the quick topics below.";
+        return "I couldn't find an exact match for that question. You can ask me about money transfers, card controls, bill payments, statements, or branch services, or check the quick topics below.";
     }
 
     private String maskAccountNumber(String accNo) {
@@ -219,13 +216,15 @@ public class SupportChatService {
             List<Account> accounts = accountRepository.findByUser(user);
             for (Account acc : accounts) {
                 String last4 = acc.getAccountNumber().substring(Math.max(0, acc.getAccountNumber().length() - 4));
-                sb.append(String.format("- %s Account (ending in %s): Available Balance ₹%.2f | Status: %s\n",
-                        acc.getAccountType(), last4, acc.getBalance(), acc.getStatus()));
+                sb.append(String.format("- %s Account (ending in %s) | Status: %s\n",
+                        acc.getAccountType(), last4, acc.getStatus()));
             }
-            sb.append("\nBanking Privacy & Compliance Rules:\n")
-              .append("1. If the customer asks about their balance, answer directly and concisely with their available balance.\n")
-              .append("2. Always refer to accounts by their masked suffix (e.g., 'ending in 6789') for privacy compliance.\n")
-              .append("3. Never attempt to execute transactions or money transfers through chat. Direct them to the Transfers section.\n\n");
+            sb.append("\nStrict Banking Privacy & Compliance Rules:\n")
+              .append("1. CRITICAL: NEVER display account balances, monetary amounts, or numbers representing money in the chat transcript under any circumstances.\n")
+              .append("2. NEVER display or ask for passwords, PINs, CVVs, OTPs, or full account numbers.\n")
+              .append("3. If the customer asks for their balance, how much money they have, or their account amount, inform them: 'For your security and privacy, account balances and monetary amounts are never displayed in chat. Please view your real-time balance securely on your Dashboard.'\n")
+              .append("4. If the customer asks about passwords, PINs, or credentials, remind them that FIN never displays credentials in chat and direct them to Settings > Security.\n")
+              .append("5. Never attempt to execute transactions or money transfers through chat. Direct them to the Transfers section.\n\n");
         }
 
         sb.append("Verified FIN Banking Services & FAQs:\n");

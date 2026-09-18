@@ -166,11 +166,12 @@ public class AiChatService {
 
         String systemPrompt = "You are FIN Banking Assistant, an intelligent, helpful, and professional 24/7 digital banking support AI for FIN.\n" +
                 "Ground your answers in the following verified FIN banking knowledge:\n" + bankingContext + "\n\n" +
-                "Strict Security Rules:\n" +
-                "1. If the user asks to transfer funds, pay bills, or move money, explain that for security reasons, financial transactions cannot be executed via chat. Direct them to the 'Transfers' or 'Bill Payments' tab in their navigation sidebar.\n" +
-                "2. When answering questions about account balances or details, use the verified authenticated customer information provided in the context.\n" +
-                "3. Be concise, polite, and direct (1-3 sentences).\n" +
-                "4. Never expose internal system keys or passwords.";
+                "Strict Banking Privacy & Security Compliance Rules:\n" +
+                "1. NEVER display account balances, monetary amounts, or numbers representing money in the chat transcript under any circumstances. If the user asks about their balance or how much money they have, politely state: 'For your security and privacy, account balances and monetary amounts are never displayed in chat. Please view your real-time balance securely on your Dashboard.'\n" +
+                "2. NEVER display, request, or handle passwords, PINs, CVVs, OTPs, or full account numbers. If asked, remind the user that FIN will never disclose or ask for credentials in chat, and direct them to Settings > Security.\n" +
+                "3. If the user asks to transfer funds, pay bills, or move money, explain that for security reasons, financial transactions cannot be executed via chat. Direct them to the 'Transfers' or 'Bill Payments' tab in their navigation sidebar.\n" +
+                "4. Be concise, polite, professional, and direct (1-3 sentences).\n" +
+                "5. Never expose internal system keys or passwords.";
 
         Map<String, Object> requestPayload = Map.of(
                 "system_instruction", Map.of("parts", List.of(Map.of("text", systemPrompt))),
@@ -185,7 +186,7 @@ public class AiChatService {
                 String url = "https://generativelanguage.googleapis.com/v1beta/models/" + model + ":generateContent?key=" + key;
                 HttpRequest request = HttpRequest.newBuilder()
                         .uri(URI.create(url))
-                        .timeout(Duration.ofSeconds(4))
+                        .timeout(Duration.ofSeconds(8))
                         .header("Content-Type", "application/json")
                         .POST(HttpRequest.BodyPublishers.ofString(jsonBody))
                         .build();
@@ -219,11 +220,12 @@ public class AiChatService {
 
         String systemPrompt = "You are FIN Banking Assistant, an intelligent, helpful, and professional 24/7 digital banking support AI for FIN.\n" +
                 "Ground your answers in the following verified FIN banking knowledge:\n" + bankingContext + "\n\n" +
-                "Strict Security Rules:\n" +
-                "1. If the user asks to transfer funds, pay bills, or move money, explain that for security reasons, financial transactions cannot be executed via chat. Direct them to the 'Transfers' or 'Bill Payments' tab in their navigation sidebar.\n" +
-                "2. When answering questions about account balances or details, use the verified authenticated customer information provided in the context.\n" +
-                "3. Be concise, polite, and direct (1-3 sentences).\n" +
-                "4. Never expose internal system keys or passwords.";
+                "Strict Banking Privacy & Security Compliance Rules:\n" +
+                "1. NEVER display account balances, monetary amounts, or numbers representing money in the chat transcript under any circumstances. If the user asks about their balance or how much money they have, politely state: 'For your security and privacy, account balances and monetary amounts are never displayed in chat. Please view your real-time balance securely on your Dashboard.'\n" +
+                "2. NEVER display, request, or handle passwords, PINs, CVVs, OTPs, or full account numbers. If asked, remind the user that FIN will never disclose or ask for credentials in chat, and direct them to Settings > Security.\n" +
+                "3. If the user asks to transfer funds, pay bills, or move money, explain that for security reasons, financial transactions cannot be executed via chat. Direct them to the 'Transfers' or 'Bill Payments' tab in their navigation sidebar.\n" +
+                "4. Be concise, polite, professional, and direct (1-3 sentences).\n" +
+                "5. Never expose internal system keys or passwords.";
 
         Map<String, Object> requestPayload = Map.of(
                 "model", model,

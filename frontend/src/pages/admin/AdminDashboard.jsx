@@ -82,10 +82,10 @@ const AdminDashboard = () => {
         <div>
           <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight flex items-center space-x-2">
             <ShieldAlert className="w-6 h-6 text-brand-600" />
-            <span>Admin Governance Console</span>
+            <span>FIN Bank Operations Hub</span>
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
-            System overview, customer lifecycle management, transaction monitor, and audit logs
+            Core Banking Operations, Customer Directory & KYC, AML Transaction Monitoring, and Compliance Audit Trail
           </p>
         </div>
         <button
@@ -136,7 +136,7 @@ const AdminDashboard = () => {
             activeTab === 'overview' ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-100'
           }`}
         >
-          Operations Console
+          Operations Hub
         </button>
         <button
           onClick={() => { setActiveTab('users'); setSearchParams({ tab: 'users' }); }}
@@ -144,7 +144,7 @@ const AdminDashboard = () => {
             activeTab === 'users' ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-100'
           }`}
         >
-          Customer Accounts ({users.length})
+          Customer Directory & KYC ({users.length})
         </button>
         <button
           onClick={() => { setActiveTab('transactions'); setSearchParams({ tab: 'transactions' }); }}
@@ -152,7 +152,7 @@ const AdminDashboard = () => {
             activeTab === 'transactions' ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-100'
           }`}
         >
-          Transaction Monitor ({transactions.length})
+          Transaction Monitor & AML ({transactions.length})
         </button>
         <button
           onClick={() => { setActiveTab('audit'); setSearchParams({ tab: 'audit' }); }}
@@ -160,7 +160,7 @@ const AdminDashboard = () => {
             activeTab === 'audit' ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-100'
           }`}
         >
-          Security Audit Trail ({auditLogs.length})
+          Security & Audit Trail ({auditLogs.length})
         </button>
       </div>
 
