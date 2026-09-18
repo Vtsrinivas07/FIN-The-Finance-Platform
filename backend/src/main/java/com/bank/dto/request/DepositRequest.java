@@ -17,4 +17,8 @@ public class DepositRequest {
     @NotNull(message = "Deposit amount is required")
     @DecimalMin(value = "10.00", message = "Minimum deposit amount is ₹10.00")
     private BigDecimal amount;
+
+    private String paymentMethod; // UPI, NETBANKING, DEBIT_CARD
+
+    private String sourceDetail; // e.g. "Google Pay (srinivas@okaxis)", "HDFC NetBanking"
 }

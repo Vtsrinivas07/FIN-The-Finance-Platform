@@ -66,7 +66,18 @@ public class AccountService {
         account.setBalance(account.getBalance().add(request.getAmount()));
         accountRepository.save(account);
 
-        String refNum = "DEP" + System.currentTimeMillis();
+        String method = (request.getPaymentMethod() != null && !request.getPaymentMethod().isBlank())
+                ? request.getPaymentMethod().toUpperCase()
+                : "UPI";
+        String detail = (request.getSourceDetail() != null && !request.getSourceDetail().isBlank())
+                ? request.getSourceDetail()
+                : "External Bank Transfer";
+
+        String prefix = method.startsWith("NET") ? "INB" : (method.startsWith("DEBIT") ? "PGW" : "UPI");
+        String refNum = prefix + System.currentTimeMillis();
+
+        String txDesc = String.format("%s Inward: %s (Ref #%s)", method, detail, refNum);
+
         Transaction transaction = Transaction.builder()
                 .account(account)
                 .referenceNumber(refNum)
@@ -74,20 +85,21 @@ public class AccountService {
                 .type(Transaction.TransactionType.CREDIT)
                 .category(Transaction.TransactionCategory.DEPOSIT)
                 .status(Transaction.TransactionStatus.SUCCESS)
-                .description("Cash Deposit to " + maskAccountNumber(account.getAccountNumber()))
-                .recipientInfo("SELF-DEPOSIT")
+                .description(txDesc)
+                .recipientInfo(detail)
                 .build();
         transactionRepository.save(transaction);
 
         notificationService.createNotification(
                 user,
-                "Deposit Successful",
-                String.format("₹%.2f credited to account %s. Current Balance: ₹%.2f",
-                        request.getAmount(), maskAccountNumber(account.getAccountNumber()), account.getBalance()),
+                "Funds Credited Successfully",
+                String.format("₹%,.2f received from %s into account %s. Available Balance: ₹%,.2f",
+                        request.getAmount(), detail, maskAccountNumber(account.getAccountNumber()), account.getBalance()),
                 NotificationType.ACCOUNT_UPDATE
         );
 
-        auditService.log(user, "DEPOSIT", "Account", account.getId().toString(), "SUCCESS", null, "Deposited amount: " + request.getAmount());
+        auditService.log(user, "FUND_ACCOUNT", "Account", account.getId().toString(), "SUCCESS", null,
+                String.format("Funded ₹%.2f via %s (%s)", request.getAmount(), method, detail));
 
         return mapToResponse(account);
     }
