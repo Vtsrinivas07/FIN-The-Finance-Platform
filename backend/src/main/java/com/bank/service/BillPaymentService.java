@@ -63,6 +63,10 @@ public class BillPaymentService {
             throw new BadRequestException("Account is not active");
         }
 
+        if (user.getKycStatus() != User.KycStatus.VERIFIED_TIER_3) {
+            throw new BadRequestException("Bill payments are restricted. Full KYC (Tier 3) approval is required.");
+        }
+
         if (request.getAmount().compareTo(BigDecimal.ZERO) <= 0) {
             throw new BadRequestException("Amount must be greater than zero");
         }
@@ -110,6 +114,10 @@ public class BillPaymentService {
 
         if (account.getStatus() != Account.AccountStatus.ACTIVE) {
             throw new BadRequestException("Account is not active");
+        }
+
+        if (user.getKycStatus() != User.KycStatus.VERIFIED_TIER_3) {
+            throw new BadRequestException("Mobile recharges are restricted. Full KYC (Tier 3) approval is required.");
         }
 
         RechargePlan plan = rechargePlanRepository.findById(request.getPlanId())

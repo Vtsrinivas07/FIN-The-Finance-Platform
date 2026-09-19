@@ -42,6 +42,12 @@ public class TransferService {
             throw new BadRequestException("Your account is not active");
         }
 
+        if (senderUser.getKycStatus() != User.KycStatus.VERIFIED_TIER_3) {
+            auditService.log(senderUser, "TRANSFER_BLOCKED_KYC", "Transfer", null, "FAILED", null,
+                    "Fund transfer blocked: Full KYC (Tier 3) verification and Admin approval is required. Current KYC Status: " + senderUser.getKycStatus());
+            throw new BadRequestException("Fund transfers and debits are restricted. Full Tier-3 KYC verification and Bank Admin approval is required before transactions can be initiated.");
+        }
+
         if (request.getAmount().compareTo(BigDecimal.ZERO) <= 0) {
             throw new BadRequestException("Transfer amount must be greater than zero");
         }

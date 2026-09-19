@@ -15,7 +15,8 @@ import {
   Building2,
   X,
   Sparkles,
-  ShieldCheck
+  ShieldCheck,
+  KeyRound
 } from 'lucide-react';
 
 const Sidebar = ({ isOpen, onClose }) => {
@@ -41,7 +42,7 @@ const Sidebar = ({ isOpen, onClose }) => {
 
   const adminNavItems = [
     { name: 'Operations Hub', path: '/admin', icon: LayoutDashboard },
-    { name: 'Customer CIF Inquiry', path: '/admin?tab=users', icon: Users },
+    { name: 'Direct CIF Lookup', path: '/admin?tab=users', icon: KeyRound },
     { name: 'Clearing & AML Inquiry', path: '/admin?tab=transactions', icon: ArrowLeftRight },
     { name: 'Security & Audit Trail', path: '/admin?tab=audit', icon: ShieldAlert },
     { name: 'KYC Approvals', path: '/admin?tab=kyc', icon: ShieldCheck },

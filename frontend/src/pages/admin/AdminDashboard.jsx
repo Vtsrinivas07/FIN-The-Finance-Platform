@@ -45,25 +45,10 @@ const CIF_AUTH_OPTIONS = [
   { value: 'EMAIL', label: 'Registered Email' }
 ];
 
-const CIF_REASON_OPTIONS = [
-  { value: 'In-Branch Customer Servicing & Account Assistance', label: 'In-Branch Customer Servicing' },
-  { value: 'Dispute, Chargeback & Unauthorized Debit Investigation', label: 'Dispute & Chargeback Investigation' },
-  { value: 'Anti-Money Laundering (AML) & Suspicious Activity Review', label: 'AML / Suspicious Activity Review' },
-  { value: 'KYC & Customer Due Diligence (CDD) Verification', label: 'KYC Profile Verification' },
-  { value: 'Regulatory Authority & Court Order Compliance', label: 'Regulatory / Legal Order' }
-];
-
 const TX_SEARCH_OPTIONS = [
   { value: 'REFERENCE_NUMBER', label: 'Transaction Reference (UTR / RRN)' },
   { value: 'ACCOUNT_NUMBER', label: 'Customer Account Number' },
   { value: 'CIF_USERNAME', label: 'Customer CIF / Username' }
-];
-
-const TX_REASON_OPTIONS = [
-  { value: 'Dispute Resolution & Chargeback Settlement', label: 'Dispute & Chargeback Resolution' },
-  { value: 'AML High-Value Screening & Fraud Check', label: 'AML Screening & Fraud Check' },
-  { value: 'Clearing & Settlement Reconciliation', label: 'Inter-Bank Clearing Reconciliation' },
-  { value: 'Failed Payment Investigation', label: 'Failed Payment Investigation' }
 ];
 
 const CustomSelect = ({ value, onChange, options, className = '' }) => {
@@ -130,10 +115,55 @@ const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState(currentTab);
   const [loading, setLoading] = useState(true);
 
+  // --- Live Time Clock for IST & Real-Time Auditing ---
+  const [currentTime, setCurrentTime] = useState(new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  // Format timestamp accurately to Indian Standard Time (IST)
+  const formatLiveTimestamp = (isoStr) => {
+    if (!isoStr) return 'N/A';
+    const normalized = (typeof isoStr === 'string' && (isoStr.endsWith('Z') || isoStr.includes('+')))
+      ? isoStr
+      : `${isoStr}Z`;
+    const d = new Date(normalized);
+    if (isNaN(d.getTime())) return String(isoStr);
+    return d.toLocaleString('en-IN', {
+      timeZone: 'Asia/Kolkata',
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: true,
+    });
+  };
+
+  // Live relative time badge (updates each second with currentTime)
+  const getRelativeTime = (isoStr) => {
+    if (!isoStr) return '';
+    const normalized = (typeof isoStr === 'string' && (isoStr.endsWith('Z') || isoStr.includes('+')))
+      ? isoStr
+      : `${isoStr}Z`;
+    const d = new Date(normalized);
+    if (isNaN(d.getTime())) return '';
+    const diffSec = Math.max(0, Math.floor((currentTime.getTime() - d.getTime()) / 1000));
+    if (diffSec < 10) return 'Just now';
+    if (diffSec < 60) return `${diffSec}s ago`;
+    const mins = Math.floor(diffSec / 60);
+    if (mins < 60) return `${mins}m ago`;
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return `${hrs}h ago`;
+    return `${Math.floor(hrs / 24)}d ago`;
+  };
+
   // --- Customer CIF Inquiry State (Privacy-Gated) ---
   const [cifAuthType, setCifAuthType] = useState('ACCOUNT_NUMBER');
   const [cifQuery, setCifQuery] = useState('');
-  const [cifReason, setCifReason] = useState('In-Branch Customer Servicing & Account Assistance');
   const [cifLoading, setCifLoading] = useState(false);
   const [cifError, setCifError] = useState('');
   const [customerDossier, setCustomerDossier] = useState(null);
@@ -142,7 +172,6 @@ const AdminDashboard = () => {
   // --- Transaction Clearing Inquiry State (Privacy-Gated) ---
   const [txSearchType, setTxSearchType] = useState('REFERENCE_NUMBER');
   const [txQuery, setTxQuery] = useState('');
-  const [txReason, setTxReason] = useState('Dispute Resolution & Chargeback Settlement');
   const [txLoading, setTxLoading] = useState(false);
   const [txError, setTxError] = useState('');
   const [searchedTransactions, setSearchedTransactions] = useState(null);
@@ -248,7 +277,7 @@ const AdminDashboard = () => {
       const res = await api.post('/admin/customer-inquiry', {
         authType: cifAuthType,
         identifier: cifQuery.trim(),
-        reason: cifReason
+        reason: 'Administrative Inquiry & Verification'
       });
 
       if (res.data?.success) {
@@ -279,7 +308,7 @@ const AdminDashboard = () => {
       const res = await api.post('/admin/transaction-inquiry', {
         searchType: txSearchType,
         identifier: txQuery.trim(),
-        reason: txReason
+        reason: 'Clearing & AML Verification'
       });
 
       if (res.data?.success) {
@@ -372,23 +401,32 @@ const AdminDashboard = () => {
   return (
     <div className="space-y-6">
       {/* Page Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight flex items-center space-x-2">
             <ShieldAlert className="w-6 h-6 text-brand-600" />
             <span>FIN Bank Operations & Clearing Hub</span>
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
-            Core Banking Infrastructure, Authenticated Customer CIF Lookup, AML Clearing Audit, and Compliance Trail
+            Core Banking Infrastructure, Direct Customer CIF Lookup, AML Clearing Audit, and Compliance Trail
           </p>
         </div>
-        <button
-          onClick={loadMacroData}
-          className="flex items-center space-x-1.5 px-3.5 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold shadow-xs transition"
-        >
-          <RotateCcw className="w-3.5 h-3.5" />
-          <span>Refresh System Health</span>
-        </button>
+        <div className="flex items-center space-x-3">
+          {/* Live Indian Standard Time (IST) Clock */}
+          <div className="flex items-center space-x-2 px-3.5 py-2 rounded-xl bg-slate-100 border border-slate-200 text-xs font-mono text-slate-700 shadow-2xs">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            <span className="font-semibold">
+              {currentTime.toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour12: true, hour: '2-digit', minute: '2-digit', second: '2-digit' })} IST
+            </span>
+          </div>
+          <button
+            onClick={loadMacroData}
+            className="flex items-center space-x-1.5 px-3.5 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold shadow-xs transition cursor-pointer"
+          >
+            <RotateCcw className="w-3.5 h-3.5" />
+            <span>Refresh System Health</span>
+          </button>
+        </div>
       </div>
 
       {/* Macro Metrics Row (No individual customer personal data exposed) */}
@@ -439,7 +477,7 @@ const AdminDashboard = () => {
           }`}
         >
           <KeyRound className="w-3.5 h-3.5" />
-          <span>Customer CIF Inquiry {customerDossier && '(1 Active Dossier)'}</span>
+          <span>Direct CIF Lookup {customerDossier && '(1 Active Dossier)'}</span>
         </button>
         <button
           onClick={() => { setActiveTab('transactions'); setSearchParams({ tab: 'transactions' }); }}
@@ -590,75 +628,26 @@ const AdminDashboard = () => {
             </div>
           </div>
 
-          {/* Quick Authenticated Customer Inquiry Terminal Card */}
-          <div className="p-6 rounded-3xl bg-white border border-slate-200/80 shadow-xs space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-              <div>
-                <h3 className="text-base font-extrabold text-slate-900 flex items-center space-x-2">
-                  <KeyRound className="w-5 h-5 text-brand-600" />
-                  <span>Direct Customer Authentication & CIF Lookup</span>
-                </h3>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  Universal customer listings are restricted under Section 45E of the RBI Act. Authenticate via Account Number, CIF, Mobile, PAN, or Email to retrieve individual records.
-                </p>
-              </div>
-              <div className="p-2 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-[11px] flex items-center space-x-1.5 self-start sm:self-auto">
-                <Lock className="w-3.5 h-3.5 text-amber-700 flex-shrink-0" />
-                <span>Mandatory Audit Purpose Required</span>
-              </div>
+          {/* Direct Customer Authentication & CIF Lookup Access Banner */}
+          <div className="p-6 rounded-3xl bg-gradient-to-r from-brand-50 to-indigo-50/50 border border-brand-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="space-y-1">
+              <h3 className="text-base font-extrabold text-slate-900 flex items-center space-x-2">
+                <KeyRound className="w-5 h-5 text-brand-600" />
+                <span>Direct Customer Authentication & CIF Lookup</span>
+              </h3>
+              <p className="text-xs text-slate-600 max-w-xl leading-relaxed">
+                Universal customer listings are restricted under Section 45E of the RBI Act. Query individual customer dossiers securely via Account Number, CIF, Mobile, PAN, or Email.
+              </p>
             </div>
-
-            {/* Quick Inquiry Form */}
-            <form onSubmit={(e) => { e.preventDefault(); setActiveTab('users'); setSearchParams({ tab: 'users' }); handleCustomerInquiry(); }} className="grid grid-cols-1 sm:grid-cols-12 gap-3 pt-2">
-              <div className="sm:col-span-3">
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
-                  Authentication Type
-                </label>
-                <CustomSelect
-                  value={cifAuthType}
-                  onChange={setCifAuthType}
-                  options={CIF_AUTH_OPTIONS}
-                />
-              </div>
-
-              <div className="sm:col-span-4">
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
-                  Customer Identifier
-                </label>
-                <div className="relative">
-                  <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                  <input
-                    type="text"
-                    value={cifQuery}
-                    onChange={(e) => setCifQuery(e.target.value)}
-                    placeholder={getCifPlaceholder(cifAuthType)}
-                    className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-mono font-medium text-slate-900 focus:border-brand-500 focus:bg-white focus:outline-none transition"
-                  />
-                </div>
-              </div>
-
-              <div className="sm:col-span-3">
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
-                  Compliance Justification
-                </label>
-                <CustomSelect
-                  value={cifReason}
-                  onChange={setCifReason}
-                  options={CIF_REASON_OPTIONS}
-                />
-              </div>
-
-              <div className="sm:col-span-2 flex items-end">
-                <button
-                  type="submit"
-                  disabled={!cifQuery.trim() || cifLoading}
-                  className="w-full py-2.5 px-4 rounded-2xl text-xs font-bold bg-brand-600 hover:bg-brand-700 text-white transition disabled:opacity-50 shadow-md shadow-brand-600/20 flex items-center justify-center space-x-1.5"
-                >
-                  <Lock className="w-3.5 h-3.5" />
-                  <span>{cifLoading ? 'Verifying...' : 'Authorize & Open'}</span>
-                </button>
-              </div>
-            </form>
+            <button
+              type="button"
+              onClick={() => { setActiveTab('users'); setSearchParams({ tab: 'users' }); }}
+              className="px-5 py-2.5 rounded-2xl text-xs font-bold bg-brand-600 hover:bg-brand-700 text-white transition shadow-md shadow-brand-600/20 flex items-center space-x-2 flex-shrink-0 self-start sm:self-auto cursor-pointer"
+            >
+              <KeyRound className="w-3.5 h-3.5" />
+              <span>Open CIF Terminal</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </button>
           </div>
         </div>
       )}
@@ -674,10 +663,10 @@ const AdminDashboard = () => {
               <div>
                 <h3 className="text-base font-extrabold text-slate-900 flex items-center space-x-2">
                   <KeyRound className="w-5 h-5 text-brand-600" />
-                  <span>Customer CIF & Account Inquiry Terminal</span>
+                  <span>Direct Customer Authentication & CIF Lookup</span>
                 </h3>
                 <p className="text-xs text-slate-500 mt-0.5">
-                  Authenticated banking query portal. Officers must select an authentication credential type and provide an audit justification to query customer dossiers.
+                  Universal customer listings are restricted under Section 45E of the RBI Act. Authenticate via Account Number, CIF, Mobile, PAN, or Email to retrieve individual records.
                 </p>
               </div>
               <div className="flex items-center space-x-2">
@@ -690,7 +679,7 @@ const AdminDashboard = () => {
 
             {/* Input Form */}
             <form onSubmit={handleCustomerInquiry} className="grid grid-cols-1 sm:grid-cols-12 gap-3 pt-1">
-              <div className="sm:col-span-3">
+              <div className="sm:col-span-4">
                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
                   Authentication Credential Type
                 </label>
@@ -701,9 +690,9 @@ const AdminDashboard = () => {
                 />
               </div>
 
-              <div className="sm:col-span-4">
+              <div className="sm:col-span-5">
                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
-                  Identifier Input
+                  Customer Identifier
                 </label>
                 <div className="relative">
                   <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -717,22 +706,11 @@ const AdminDashboard = () => {
                 </div>
               </div>
 
-              <div className="sm:col-span-3">
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
-                  Regulatory Audit Purpose
-                </label>
-                <CustomSelect
-                  value={cifReason}
-                  onChange={setCifReason}
-                  options={CIF_REASON_OPTIONS}
-                />
-              </div>
-
-              <div className="sm:col-span-2 flex items-end">
+              <div className="sm:col-span-3 flex items-end">
                 <button
                   type="submit"
                   disabled={!cifQuery.trim() || cifLoading}
-                  className="w-full py-2.5 px-4 rounded-2xl text-xs font-bold bg-brand-600 hover:bg-brand-700 text-white transition disabled:opacity-50 shadow-md shadow-brand-600/20 flex items-center justify-center space-x-1.5"
+                  className="w-full py-2.5 px-4 rounded-2xl text-xs font-bold bg-brand-600 hover:bg-brand-700 text-white transition disabled:opacity-50 shadow-md shadow-brand-600/20 flex items-center justify-center space-x-1.5 cursor-pointer"
                 >
                   <KeyRound className="w-3.5 h-3.5" />
                   <span>{cifLoading ? 'Authenticating...' : 'Authenticate & Retrieve'}</span>
@@ -835,8 +813,9 @@ const AdminDashboard = () => {
                     <UserCheck className="w-4 h-4 text-indigo-600 flex-shrink-0" />
                     <span>Inquiry Authorized Via: <strong>{getAuthTypeLabel(customerDossier.authType)}</strong> [{customerDossier.queriedIdentifier}]</span>
                   </div>
-                  <span className="text-[11px] text-indigo-700 font-semibold bg-white/80 px-2.5 py-1 rounded-xl border border-indigo-200/60">
-                    Justification: {customerDossier.reason}
+                  <span className="text-[11px] text-indigo-700 font-bold bg-white/90 px-3 py-1 rounded-xl border border-indigo-200/60 flex items-center space-x-1.5 shadow-2xs">
+                    <ShieldCheck className="w-3.5 h-3.5 text-indigo-600" />
+                    <span>Immutable Audit Logged</span>
                   </span>
                 </div>
 
@@ -1076,7 +1055,7 @@ const AdminDashboard = () => {
 
             {/* Input Form */}
             <form onSubmit={handleTransactionInquiry} className="grid grid-cols-1 sm:grid-cols-12 gap-3 pt-1">
-              <div className="sm:col-span-3">
+              <div className="sm:col-span-4">
                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
                   Search Identifier Rail
                 </label>
@@ -1087,7 +1066,7 @@ const AdminDashboard = () => {
                 />
               </div>
 
-              <div className="sm:col-span-4">
+              <div className="sm:col-span-5">
                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
                   Query Reference Value
                 </label>
@@ -1103,22 +1082,11 @@ const AdminDashboard = () => {
                 </div>
               </div>
 
-              <div className="sm:col-span-3">
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
-                  Investigation Purpose
-                </label>
-                <CustomSelect
-                  value={txReason}
-                  onChange={setTxReason}
-                  options={TX_REASON_OPTIONS}
-                />
-              </div>
-
-              <div className="sm:col-span-2 flex items-end">
+              <div className="sm:col-span-3 flex items-end">
                 <button
                   type="submit"
                   disabled={!txQuery.trim() || txLoading}
-                  className="w-full py-2.5 px-4 rounded-2xl text-xs font-bold bg-brand-600 hover:bg-brand-700 text-white transition disabled:opacity-50 shadow-md shadow-brand-600/20 flex items-center justify-center space-x-1.5"
+                  className="w-full py-2.5 px-4 rounded-2xl text-xs font-bold bg-brand-600 hover:bg-brand-700 text-white transition disabled:opacity-50 shadow-md shadow-brand-600/20 flex items-center justify-center space-x-1.5 cursor-pointer"
                 >
                   <Search className="w-3.5 h-3.5" />
                   <span>{txLoading ? 'Searching...' : 'Query Clearing'}</span>
@@ -1207,8 +1175,8 @@ const AdminDashboard = () => {
                           <td className="px-6 py-3.5 font-mono font-bold text-slate-900">{tx.referenceNumber}</td>
                           <td className="px-6 py-3.5 font-mono text-slate-600">{tx.accountNumber}</td>
                           <td className="px-6 py-3.5 text-slate-700">{tx.description}</td>
-                          <td className="px-6 py-3.5 text-slate-400 font-mono text-[11px]">
-                            {new Date(tx.createdAt).toLocaleString()}
+                          <td className="px-6 py-3.5 text-slate-600 font-mono text-[11px] whitespace-nowrap">
+                            {formatLiveTimestamp(tx.createdAt)}
                           </td>
                           <td className="px-6 py-3.5 text-right font-mono font-bold text-slate-900">
                             {txMaskAmounts ? '₹••••••' : `₹${parseFloat(tx.amount).toFixed(2)}`}
@@ -1234,7 +1202,7 @@ const AdminDashboard = () => {
       {/* ======================================================== */}
       {activeTab === 'audit' && (
         <div className="bg-white rounded-3xl border border-slate-200/80 shadow-xs overflow-hidden">
-          <div className="p-4 border-b border-slate-100 flex items-center justify-between">
+          <div className="p-4 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
               <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider flex items-center space-x-2">
                 <Fingerprint className="w-4 h-4 text-brand-600" />
@@ -1242,16 +1210,26 @@ const AdminDashboard = () => {
               </h3>
               <p className="text-[11px] text-slate-400 mt-0.5">Immutable audit trail of administrator sessions, customer CIF lookups, and transaction queries</p>
             </div>
-            <span className="text-xs text-slate-400 font-mono">
-              {auditLogs.length} events recorded
-            </span>
+            <div className="flex items-center space-x-3 self-start sm:self-auto">
+              <button
+                type="button"
+                onClick={loadAuditLogs}
+                className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold shadow-2xs transition cursor-pointer"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span>Live Refresh</span>
+              </button>
+              <span className="text-xs text-slate-400 font-mono">
+                {auditLogs.length} events recorded
+              </span>
+            </div>
           </div>
 
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
               <thead className="bg-slate-50 border-b border-slate-200/80 text-[11px] font-bold uppercase tracking-wider text-slate-400">
                 <tr>
-                  <th className="px-6 py-3.5">Timestamp</th>
+                  <th className="px-6 py-3.5">Timestamp (IST)</th>
                   <th className="px-6 py-3.5">Operator</th>
                   <th className="px-6 py-3.5">Action</th>
                   <th className="px-6 py-3.5">Entity</th>
@@ -1262,7 +1240,15 @@ const AdminDashboard = () => {
               <tbody className="divide-y divide-slate-100">
                 {auditLogs.map((log) => (
                   <tr key={log.id} className="hover:bg-slate-50/50 font-mono text-[11px]">
-                    <td className="px-6 py-3.5 text-slate-400">{new Date(log.createdAt).toLocaleString()}</td>
+                    <td className="px-6 py-3.5 whitespace-nowrap">
+                      <div className="font-semibold text-slate-800">
+                        {formatLiveTimestamp(log.createdAt)}
+                      </div>
+                      <div className="text-[10px] text-emerald-600 font-bold flex items-center space-x-1 mt-0.5">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                        <span>{getRelativeTime(log.createdAt)}</span>
+                      </div>
+                    </td>
                     <td className="px-6 py-3.5 font-bold text-slate-800">@{log.username}</td>
                     <td className="px-6 py-3.5 text-brand-600 font-bold">{log.action}</td>
                     <td className="px-6 py-3.5 text-slate-500">{log.entityName} #{log.entityId}</td>
@@ -1389,8 +1375,8 @@ const AdminDashboard = () => {
                     <span className="px-2 py-0.5 rounded-full text-[9px] font-extrabold bg-orange-50 text-orange-700 border border-orange-200 uppercase tracking-wide">
                       KYC SUBMITTED
                     </span>
-                    <span className="text-[10px] text-slate-400">
-                      Submitted: {req.createdAt ? new Date(req.createdAt).toLocaleString('en-IN') : 'N/A'}
+                    <span className="text-[10px] text-slate-500 font-mono">
+                      Submitted: {req.createdAt ? formatLiveTimestamp(req.createdAt) : 'N/A'}
                     </span>
                   </div>
                 </div>

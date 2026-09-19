@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
 import confetti from 'canvas-confetti';
 import {
@@ -28,6 +29,9 @@ import {
 } from 'lucide-react';
 
 const Transfers = () => {
+  const { user } = useAuth();
+  const isKycApproved = user?.kycStatus === 'VERIFIED_TIER_3';
+
   const [searchParams, setSearchParams] = useSearchParams();
   const initialMainTab = searchParams.get('tab') === 'beneficiaries' ? 'BENEFICIARIES' : 'TRANSFER';
   const [activeMainTab, setActiveMainTab] = useState(initialMainTab);
@@ -157,6 +161,10 @@ const Transfers = () => {
   };
 
   const handleQuickPayBeneficiary = (ben) => {
+    if (!isKycApproved) {
+      setError('Fund transfers are locked. Tier-3 KYC verification and Bank Admin approval is required.');
+      return;
+    }
     setActiveMainTab('TRANSFER');
     setTransferMode('BANK_ACCOUNT');
     setSelectedBeneficiary(ben);
@@ -173,6 +181,11 @@ const Transfers = () => {
   const handleProceedToConfirm = (e) => {
     e.preventDefault();
     setError('');
+
+    if (!isKycApproved) {
+      setError('Fund transfers are restricted. Full Tier-3 KYC verification and Bank Admin approval is required.');
+      return;
+    }
 
     const transferAmt = parseFloat(amount);
 
@@ -308,6 +321,48 @@ const Transfers = () => {
             <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center space-x-3 animate-in fade-in">
               <AlertCircle className="w-5 h-5 flex-shrink-0" />
               <span>{error}</span>
+            </div>
+          )}
+
+          {/* KYC Restriction Alert Banner */}
+          {!isKycApproved && (
+            <div className="p-5 rounded-3xl bg-amber-50/90 border border-amber-200 text-amber-900 shadow-xs space-y-3 animate-in fade-in">
+              <div className="flex items-start space-x-3">
+                <div className="p-2.5 rounded-2xl bg-amber-100 text-amber-700 flex-shrink-0 mt-0.5">
+                  <Lock className="w-5 h-5" />
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center space-x-2">
+                    <h4 className="text-sm font-extrabold text-amber-950">Fund Transfers Restricted — KYC Approval Required</h4>
+                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-200/80 text-amber-800 uppercase tracking-wide">
+                      {user?.kycStatus || 'PENDING'}
+                    </span>
+                  </div>
+                  <p className="text-xs text-amber-800/90 mt-1 leading-relaxed">
+                    In compliance with RBI regulations, outward fund transfers (UPI, NEFT, IMPS) are locked until full Tier-3 KYC is approved by the Bank Admin.
+                    {user?.kycStatus === 'SUBMITTED' ? (
+                      <span className="font-bold block mt-1 text-amber-950">
+                        ⏳ Your KYC documents have been submitted and are pending review in the Admin Verification Queue. Transfers will unlock automatically once approved.
+                      </span>
+                    ) : (
+                      <span className="block mt-1">
+                        Please submit your Video KYC and Aadhaar/PAN verification to unlock transfers.
+                      </span>
+                    )}
+                  </p>
+                </div>
+              </div>
+              {user?.kycStatus !== 'SUBMITTED' && (
+                <div className="pt-1 flex justify-end">
+                  <a
+                    href="/dashboard"
+                    className="inline-flex items-center space-x-1.5 px-4 py-2 rounded-xl bg-amber-700 hover:bg-amber-800 text-white text-xs font-bold transition shadow-xs"
+                  >
+                    <span>Complete KYC on Dashboard</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </a>
+                </div>
+              )}
             </div>
           )}
 
@@ -553,10 +608,24 @@ const Transfers = () => {
 
                 <button
                   type="submit"
-                  className="w-full py-3.5 px-4 rounded-2xl text-xs font-bold bg-brand-600 hover:bg-brand-700 text-white shadow-lg shadow-brand-600/30 transition flex items-center justify-center space-x-2 cursor-pointer"
+                  disabled={!isKycApproved}
+                  className={`w-full py-3.5 px-4 rounded-2xl text-xs font-bold transition flex items-center justify-center space-x-2 ${
+                    isKycApproved
+                      ? 'bg-brand-600 hover:bg-brand-700 text-white shadow-lg shadow-brand-600/30 cursor-pointer'
+                      : 'bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200'
+                  }`}
                 >
-                  <span>Continue to Verification</span>
-                  <ArrowRight className="w-4 h-4" />
+                  {isKycApproved ? (
+                    <>
+                      <span>Continue to Verification</span>
+                      <ArrowRight className="w-4 h-4" />
+                    </>
+                  ) : (
+                    <>
+                      <Lock className="w-4 h-4 text-slate-400 mr-1.5" />
+                      <span>KYC Approval Required to Transfer Funds</span>
+                    </>
+                  )}
                 </button>
               </form>
             )}
