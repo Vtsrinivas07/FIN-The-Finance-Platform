@@ -1,4 +1,4 @@
-# FIN - Digital Banking Platform
+# FIN - The Finance Platform
 
 A full-stack, enterprise-grade digital banking simulation platform built with Spring Boot, React, and PostgreSQL.
 
