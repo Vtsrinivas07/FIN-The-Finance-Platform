@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
@@ -37,7 +37,9 @@ import {
   FileCheck,
   Award,
   Zap,
-  CheckCircle
+  CheckCircle,
+  Clock,
+  Video
 } from 'lucide-react';
 import CibilGaugeChart from '../../components/common/CibilGaugeChart';
 
@@ -77,16 +79,22 @@ const Dashboard = () => {
   const [panVerified, setPanVerified] = useState(false);
   const [aadhaarInput, setAadhaarInput] = useState('');
   const [otpSent, setOtpSent] = useState(false);
-  const [generatedOtp, setGeneratedOtp] = useState('');
+  const [serverOtp, setServerOtp] = useState('');
   const [enteredOtp, setEnteredOtp] = useState('');
+  const [otpSending, setOtpSending] = useState(false);
   const [aadhaarVerifying, setAadhaarVerifying] = useState(false);
   const [aadhaarVerified, setAadhaarVerified] = useState(false);
   const [vkycScanning, setVkycScanning] = useState(false);
   const [vkycSuccess, setVkycSuccess] = useState(false);
   const [kycSubmitting, setKycSubmitting] = useState(false);
   const [kycError, setKycError] = useState('');
+  const [cameraStream, setCameraStream] = useState(null);
+  const videoRef = useRef(null);
 
-  const isKycVerified = user?.kycStatus === 'VERIFIED_TIER_3' || user?.username === 'demo' || user?.username === 'sarah' || user?.username === 'admin';
+  const isKycVerified = user?.kycStatus === 'VERIFIED_TIER_3';
+  const isKycSubmitted = user?.kycStatus === 'SUBMITTED';
+  const isKycRejected = user?.kycStatus === 'REJECTED';
+  const isKycPending = !isKycVerified && !isKycSubmitted;
 
   // Financial Health & Products Hub States
   const [showCibilModal, setShowCibilModal] = useState(false);
@@ -332,6 +340,25 @@ const Dashboard = () => {
                 <span>Full KYC Verified (Tier 3)</span>
                 <ChevronRight className="w-3 h-3 text-emerald-500 opacity-60 group-hover:translate-x-0.5 transition-transform" />
               </button>
+            ) : isKycSubmitted ? (
+              <span className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-200/80 text-[11px] font-bold shadow-xs">
+                <Clock className="w-3.5 h-3.5 text-blue-600 animate-pulse" />
+                <span>KYC Submitted — Pending Admin Approval</span>
+              </span>
+            ) : isKycRejected ? (
+              <button
+                onClick={() => {
+                  setShowKycWizard(true);
+                  setKycStep(1);
+                  setKycError('');
+                }}
+                className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-red-50 hover:bg-red-100 text-red-700 border border-red-300 text-[11px] font-bold transition shadow-xs cursor-pointer group animate-pulse"
+                title="Click to re-submit KYC"
+              >
+                <AlertCircle className="w-3.5 h-3.5 text-red-600" />
+                <span>KYC Rejected — Re-submit Documents</span>
+                <ChevronRight className="w-3 h-3 text-red-600 opacity-80 group-hover:translate-x-0.5 transition-transform" />
+              </button>
             ) : (
               <button
                 onClick={() => {
@@ -343,7 +370,7 @@ const Dashboard = () => {
                 title="Click to complete Video KYC"
               >
                 <ShieldAlert className="w-3.5 h-3.5 text-amber-600" />
-                <span>KYC Pending (Tier 1 Limited) - Complete V-KYC</span>
+                <span>KYC Pending (Tier 1 Limited) — Complete V-KYC</span>
                 <ChevronRight className="w-3 h-3 text-amber-600 opacity-80 group-hover:translate-x-0.5 transition-transform" />
               </button>
             )}
@@ -367,8 +394,62 @@ const Dashboard = () => {
         </div>
       </div>
 
+      {/* KYC Submitted - Under Review Banner */}
+      {isKycSubmitted && (
+        <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-blue-50 via-indigo-50 to-blue-50 border border-blue-200/90 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4 animate-in fade-in duration-300">
+          <div className="flex items-start space-x-3.5">
+            <div className="w-10 h-10 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center flex-shrink-0 mt-0.5 shadow-xs">
+              <Clock className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center space-x-2">
+                <span className="px-2 py-0.5 rounded text-[10px] font-extrabold uppercase tracking-wide bg-blue-200/80 text-blue-900 font-mono">
+                  Under Review
+                </span>
+                <span className="text-xs font-bold text-slate-900">KYC Documents Submitted</span>
+              </div>
+              <p className="text-xs text-slate-600 mt-1 max-w-2xl leading-relaxed">
+                Your KYC documents (PAN, Aadhaar, and Video KYC) have been submitted successfully. A bank officer will review and approve your verification. You will be notified once approved.
+              </p>
+            </div>
+          </div>
+          <span className="px-4 py-2.5 rounded-xl bg-blue-100 text-blue-800 text-xs font-bold whitespace-nowrap flex items-center space-x-1.5">
+            <Clock className="w-4 h-4 animate-spin" style={{ animationDuration: '3s' }} />
+            <span>Awaiting Approval</span>
+          </span>
+        </div>
+      )}
+
+      {/* KYC Rejected Banner */}
+      {isKycRejected && (
+        <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-red-50 via-rose-50 to-red-50 border border-red-200/90 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4 animate-in fade-in duration-300">
+          <div className="flex items-start space-x-3.5">
+            <div className="w-10 h-10 rounded-xl bg-red-100 text-red-700 flex items-center justify-center flex-shrink-0 mt-0.5 shadow-xs">
+              <AlertCircle className="w-5 h-5" />
+            </div>
+            <div>
+              <span className="text-xs font-bold text-red-900">KYC Verification Rejected</span>
+              <p className="text-xs text-slate-600 mt-1 max-w-2xl leading-relaxed">
+                Your KYC verification was rejected by a bank officer. Please re-submit your documents with correct information.
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() => {
+              setShowKycWizard(true);
+              setKycStep(1);
+              setKycError('');
+            }}
+            className="px-4 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold shadow-md shadow-red-600/20 whitespace-nowrap cursor-pointer transition flex items-center justify-center space-x-1.5 self-start sm:self-center"
+          >
+            <span>Re-submit KYC</span>
+            <ChevronRight className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
       {/* Pending KYC Action Alert Banner */}
-      {!isKycVerified && (
+      {!isKycVerified && !isKycSubmitted && !isKycRejected && (
         <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-amber-50 via-orange-50 to-amber-50 border border-amber-200/90 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4 animate-in fade-in duration-300">
           <div className="flex items-start space-x-3.5">
             <div className="w-10 h-10 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center flex-shrink-0 mt-0.5 shadow-xs">
@@ -1510,12 +1591,12 @@ const Dashboard = () => {
               </div>
             )}
 
-            {/* Step 2: Aadhaar e-KYC */}
+            {/* Step 2: Aadhaar e-KYC — Backend OTP */}
             {kycStep === 2 && (
               <div className="space-y-4">
                 <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80">
                   <span className="text-[10px] uppercase font-bold tracking-wider text-slate-500 block mb-1">UIDAI Aadhaar Verification</span>
-                  <p className="text-xs text-slate-600">Enter your 12-digit Aadhaar number to verify with UIDAI via OTP on your registered mobile number.</p>
+                  <p className="text-xs text-slate-600">Enter your 12-digit Aadhaar number. An OTP will be sent to your registered mobile number linked with Aadhaar.</p>
                 </div>
 
                 <div>
@@ -1528,26 +1609,39 @@ const Dashboard = () => {
                       value={aadhaarInput}
                       onChange={(e) => {
                         setAadhaarInput(e.target.value.replace(/[^0-9]/g, ''));
+                        setOtpSent(false);
+                        setServerOtp('');
+                        setEnteredOtp('');
                         setKycError('');
                       }}
                       className="flex-1 px-3.5 py-2.5 rounded-xl border border-slate-200 font-mono text-sm tracking-wider focus:outline-none focus:ring-2 focus:ring-brand-500"
                     />
                     <button
                       type="button"
-                      onClick={() => {
+                      disabled={otpSending}
+                      onClick={async () => {
                         if (aadhaarInput.length !== 12) {
                           setKycError('Please enter a valid 12-digit Aadhaar number.');
                           return;
                         }
-                        const randomOtp = Math.floor(100000 + Math.random() * 900000).toString();
-                        setGeneratedOtp(randomOtp);
-                        setEnteredOtp(randomOtp);
-                        setOtpSent(true);
+                        setOtpSending(true);
                         setKycError('');
+                        try {
+                          const res = await api.post('/auth/kyc/send-otp', { aadhaarNumber: aadhaarInput });
+                          if (res.data?.success) {
+                            setServerOtp(res.data.data.otp);
+                            setOtpSent(true);
+                            setEnteredOtp('');
+                          }
+                        } catch (err) {
+                          setKycError(err.response?.data?.message || 'Failed to send OTP. Please try again.');
+                        } finally {
+                          setOtpSending(false);
+                        }
                       }}
-                      className="px-3.5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition whitespace-nowrap"
+                      className="px-3.5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition whitespace-nowrap disabled:opacity-50"
                     >
-                      {otpSent ? 'Resend OTP' : 'Send OTP'}
+                      {otpSending ? 'Sending…' : otpSent ? 'Resend OTP' : 'Send OTP'}
                     </button>
                   </div>
                 </div>
@@ -1556,21 +1650,23 @@ const Dashboard = () => {
                   <div className="p-3 rounded-2xl bg-emerald-50 border border-emerald-200 animate-in fade-in duration-200">
                     <div className="flex items-center space-x-2 text-xs font-bold text-emerald-800 mb-1">
                       <CheckCircle className="w-4 h-4 text-emerald-600" />
-                      <span>UIDAI OTP Sent to {user?.mobileNumber || 'Registered Mobile'}</span>
+                      <span>OTP sent to +91 ••••••{user?.mobileNumber?.slice(-4) || '####'}</span>
                     </div>
-                    <p className="text-[11px] text-emerald-700">
-                      Simulated UIDAI OTP: <strong className="font-mono text-xs bg-emerald-100 px-1.5 py-0.5 rounded">{generatedOtp}</strong>
+                    <p className="text-[11px] text-emerald-700 mb-2.5">
+                      Demo OTP (simulated UIDAI):{' '}
+                      <strong className="font-mono text-xs bg-emerald-100 px-1.5 py-0.5 rounded border border-emerald-300">
+                        {serverOtp}
+                      </strong>
                     </p>
-                    <div className="mt-2.5">
-                      <label className="block text-xs font-bold text-slate-700 mb-1">Enter 6-Digit OTP</label>
-                      <input
-                        type="text"
-                        maxLength={6}
-                        value={enteredOtp}
-                        onChange={(e) => setEnteredOtp(e.target.value.replace(/[^0-9]/g, ''))}
-                        className="w-full px-3.5 py-2 rounded-xl border border-slate-200 font-mono text-sm tracking-widest text-center focus:outline-none focus:ring-2 focus:ring-brand-500"
-                      />
-                    </div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">Enter 6-Digit OTP</label>
+                    <input
+                      type="text"
+                      maxLength={6}
+                      placeholder="Enter OTP shown above"
+                      value={enteredOtp}
+                      onChange={(e) => setEnteredOtp(e.target.value.replace(/[^0-9]/g, ''))}
+                      className="w-full px-3.5 py-2 rounded-xl border border-slate-200 font-mono text-sm tracking-widest text-center focus:outline-none focus:ring-2 focus:ring-brand-500"
+                    />
                   </div>
                 )}
 
@@ -1601,68 +1697,120 @@ const Dashboard = () => {
                         setKycStep(3);
                       }, 800);
                     }}
-                    className="px-5 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs shadow-md shadow-brand-600/20 transition flex items-center space-x-1.5"
+                    className="px-5 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs shadow-md shadow-brand-600/20 transition flex items-center space-x-1.5 disabled:opacity-50"
                   >
-                    <span>{aadhaarVerifying ? 'Authenticating UIDAI...' : 'Verify Aadhaar & Proceed to V-KYC'}</span>
+                    <span>{aadhaarVerifying ? 'Authenticating UIDAI…' : 'Verify Aadhaar & Proceed to V-KYC'}</span>
                     <ChevronRight className="w-4 h-4" />
                   </button>
                 </div>
               </div>
             )}
 
-            {/* Step 3: Video KYC (V-KYC) Simulation */}
+            {/* Step 3: Video KYC — Real Camera Feed */}
             {kycStep === 3 && (
               <div className="space-y-4">
                 <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80">
                   <span className="text-[10px] uppercase font-bold tracking-wider text-slate-500 block mb-1">RBI Mandated Video KYC Session</span>
-                  <p className="text-xs text-slate-600">Under RBI guidelines, a live face liveness capture and geo-location match is required for Tier 3 full approval.</p>
+                  <p className="text-xs text-slate-600">A live camera session is required under RBI guidelines. Allow camera access and align your face inside the frame.</p>
                 </div>
 
-                {/* Simulated Camera Viewfinder */}
-                <div className="relative rounded-2xl bg-slate-950 overflow-hidden h-52 flex flex-col items-center justify-center p-4 border-2 border-slate-800 text-white">
-                  <div className="absolute top-3 left-3 flex items-center space-x-1.5 bg-black/60 px-2 py-1 rounded-full text-[10px] font-mono">
-                    <span className="w-2 h-2 rounded-full bg-red-500 animate-ping" />
-                    <span>REC: Encrypted 256-Bit</span>
-                  </div>
-                  <div className="absolute top-3 right-3 text-[10px] font-mono text-emerald-400 bg-black/60 px-2 py-1 rounded-full">
-                    GPS: 17.3850 N, 78.4867 E (India)
-                  </div>
+                {/* Live Camera Viewfinder */}
+                <div className="relative rounded-2xl bg-slate-950 overflow-hidden h-56 border-2 border-slate-700">
+                  {/* Live video element */}
+                  <video
+                    ref={videoRef}
+                    autoPlay
+                    playsInline
+                    muted
+                    className="w-full h-full object-cover"
+                    style={{ display: cameraStream ? 'block' : 'none' }}
+                  />
 
-                  {vkycScanning ? (
-                    <div className="flex flex-col items-center space-y-2">
-                      <div className="w-16 h-16 rounded-full border-4 border-brand-400 border-t-transparent animate-spin" />
-                      <span className="text-xs font-bold text-brand-300">Scanning Face & Verifying Documents Live...</span>
+                  {/* No camera yet — placeholder */}
+                  {!cameraStream && !vkycSuccess && (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center text-white space-y-3">
+                      <Video className="w-10 h-10 text-slate-400" />
+                      <p className="text-xs text-slate-300 text-center px-6">Click "Start Camera" to begin live Video KYC session</p>
                     </div>
-                  ) : vkycSuccess ? (
-                    <div className="flex flex-col items-center space-y-2">
-                      <div className="w-14 h-14 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center border-2 border-emerald-400">
+                  )}
+
+                  {/* Overlays always on top */}
+                  {cameraStream && !vkycSuccess && (
+                    <>
+                      {/* Face alignment guide */}
+                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                        <div className={`w-32 h-40 rounded-full border-4 ${
+                          vkycScanning ? 'border-brand-400 animate-pulse' : 'border-white/60'
+                        } border-dashed`} />
+                      </div>
+                      {/* REC badge */}
+                      <div className="absolute top-3 left-3 flex items-center space-x-1.5 bg-black/70 px-2.5 py-1 rounded-full text-[10px] font-mono text-white">
+                        <span className="w-2 h-2 rounded-full bg-red-500 animate-ping" />
+                        <span>LIVE · REC</span>
+                      </div>
+                      {/* GPS */}
+                      <div className="absolute top-3 right-3 text-[10px] font-mono text-emerald-400 bg-black/70 px-2 py-1 rounded-full">
+                        GPS: 17.38°N 78.48°E
+                      </div>
+                      {/* Scanning overlay */}
+                      {vkycScanning && (
+                        <div className="absolute inset-0 bg-brand-900/40 flex flex-col items-center justify-center space-y-2">
+                          <div className="w-16 h-16 rounded-full border-4 border-brand-400 border-t-transparent animate-spin" />
+                          <span className="text-xs font-bold text-brand-200">Scanning Face & Matching Documents…</span>
+                        </div>
+                      )}
+                    </>
+                  )}
+
+                  {/* Success overlay */}
+                  {vkycSuccess && (
+                    <div className="absolute inset-0 bg-emerald-900/60 flex flex-col items-center justify-center space-y-2">
+                      <div className="w-14 h-14 rounded-full bg-emerald-500/30 text-emerald-300 flex items-center justify-center border-2 border-emerald-400">
                         <CheckCircle className="w-8 h-8" />
                       </div>
-                      <span className="text-xs font-bold text-emerald-300">Facial Liveness & Geo-Match Verified!</span>
-                      <span className="text-[10px] text-slate-400 font-mono">Reference: VKYC-2026-90412</span>
-                    </div>
-                  ) : (
-                    <div className="flex flex-col items-center space-y-2 text-center">
-                      <div className="w-20 h-24 rounded-3xl border-2 border-dashed border-white/40 flex items-center justify-center">
-                        <span className="text-[10px] text-white/60 font-mono">Align Face</span>
-                      </div>
-                      <p className="text-[11px] text-slate-300 max-w-xs">
-                        Click below to initiate the automated camera verification and NSDL-UIDAI photo match.
-                      </p>
+                      <span className="text-xs font-bold text-emerald-200">Facial Liveness Verified!</span>
                     </div>
                   )}
                 </div>
 
-                <div className="pt-2 flex items-center justify-between">
+                <div className="pt-1 flex items-center justify-between">
                   <button
                     type="button"
-                    onClick={() => setKycStep(2)}
+                    onClick={() => {
+                      if (cameraStream) {
+                        cameraStream.getTracks().forEach(t => t.stop());
+                        setCameraStream(null);
+                      }
+                      setVkycSuccess(false);
+                      setVkycScanning(false);
+                      setKycStep(2);
+                    }}
                     className="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 text-xs font-semibold hover:bg-slate-50 transition"
                   >
                     Back
                   </button>
 
-                  {!vkycSuccess ? (
+                  {!cameraStream && !vkycSuccess && (
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        setKycError('');
+                        try {
+                          const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
+                          setCameraStream(stream);
+                          if (videoRef.current) videoRef.current.srcObject = stream;
+                        } catch {
+                          setKycError('Camera access denied. Please allow camera access and try again.');
+                        }
+                      }}
+                      className="px-5 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs shadow-md shadow-brand-600/20 transition flex items-center space-x-1.5"
+                    >
+                      <Video className="w-4 h-4" />
+                      <span>Start Camera</span>
+                    </button>
+                  )}
+
+                  {cameraStream && !vkycSuccess && (
                     <button
                       type="button"
                       disabled={vkycScanning}
@@ -1671,13 +1819,16 @@ const Dashboard = () => {
                         setTimeout(() => {
                           setVkycScanning(false);
                           setVkycSuccess(true);
-                        }, 2000);
+                          if (cameraStream) cameraStream.getTracks().forEach(t => t.stop());
+                        }, 2500);
                       }}
-                      className="px-5 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs shadow-md shadow-brand-600/20 transition"
+                      className="px-5 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs shadow-md shadow-brand-600/20 transition disabled:opacity-50"
                     >
-                      {vkycScanning ? 'Verifying Live...' : 'Start Liveness & Document Scan'}
+                      {vkycScanning ? 'Scanning…' : 'Scan Face & Verify'}
                     </button>
-                  ) : (
+                  )}
+
+                  {vkycSuccess && (
                     <button
                       type="button"
                       disabled={kycSubmitting}
@@ -1692,10 +1843,10 @@ const Dashboard = () => {
                             otp: enteredOtp,
                             vkycReference: 'VKYC-2026-' + Math.floor(10000 + Math.random() * 90000)
                           });
-                          if (res.data && res.data.success) {
+                          if (res.data?.success) {
                             if (refreshUser) await refreshUser();
                             setShowKycWizard(false);
-                            setShowKycModal(true);
+                            setCameraStream(null);
                           }
                         } catch (err) {
                           setKycError(err.response?.data?.message || 'KYC submission failed. Please try again.');
@@ -1703,9 +1854,9 @@ const Dashboard = () => {
                           setKycSubmitting(false);
                         }
                       }}
-                      className="px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md shadow-emerald-600/20 transition flex items-center space-x-1.5"
+                      className="px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md shadow-emerald-600/20 transition flex items-center space-x-1.5 disabled:opacity-50"
                     >
-                      <span>{kycSubmitting ? 'Finalizing Approval...' : 'Complete & Activate Tier 3 Full KYC'}</span>
+                      <span>{kycSubmitting ? 'Submitting for Review…' : 'Submit KYC for Admin Approval'}</span>
                       <CheckCircle className="w-4 h-4" />
                     </button>
                   )}

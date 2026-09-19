@@ -98,4 +98,31 @@ public class AdminController {
         List<TransactionResponse> response = adminService.performTransactionInquiry(request, adminUser, httpRequest.getRemoteAddr());
         return ResponseEntity.ok(ApiResponse.success(response));
     }
+
+    @GetMapping("/kyc/pending")
+    @Operation(summary = "List all pending KYC verification requests awaiting admin approval")
+    public ResponseEntity<ApiResponse<List<UserProfileResponse>>> getPendingKycRequests() {
+        List<UserProfileResponse> pending = adminService.getPendingKycRequests();
+        return ResponseEntity.ok(ApiResponse.success(pending));
+    }
+
+    @PostMapping("/kyc/{userId}/approve")
+    @Operation(summary = "Approve customer KYC and upgrade to Full KYC Tier 3")
+    public ResponseEntity<ApiResponse<Void>> approveKyc(@PathVariable Long userId) {
+        User adminUser = securityUtils.getAuthenticatedUser();
+        adminService.approveKyc(userId, adminUser);
+        return ResponseEntity.ok(ApiResponse.success("KYC approved successfully. Customer upgraded to Tier 3.", null));
+    }
+
+    @PostMapping("/kyc/{userId}/reject")
+    @Operation(summary = "Reject customer KYC with reason")
+    public ResponseEntity<ApiResponse<Void>> rejectKyc(
+            @PathVariable Long userId,
+            @RequestBody java.util.Map<String, String> body
+    ) {
+        User adminUser = securityUtils.getAuthenticatedUser();
+        String reason = body.getOrDefault("reason", "Documents could not be verified");
+        adminService.rejectKyc(userId, reason, adminUser);
+        return ResponseEntity.ok(ApiResponse.success("KYC rejected. Customer notified.", null));
+    }
 }

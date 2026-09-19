@@ -61,9 +61,16 @@ const AdminDashboard = () => {
   const [searchedTransactions, setSearchedTransactions] = useState(null);
   const [txMaskAmounts, setTxMaskAmounts] = useState(true);
 
+  // --- KYC Approval Queue State ---
+  const [kycRequests, setKycRequests] = useState([]);
+  const [kycLoading, setKycLoading] = useState(false);
+  const [kycActionLoading, setKycActionLoading] = useState(null); // userId being actioned
+  const [showRejectModal, setShowRejectModal] = useState(null); // user obj
+  const [rejectReason, setRejectReason] = useState('');
+
   useEffect(() => {
     const tab = searchParams.get('tab') || 'overview';
-    if (['overview', 'users', 'transactions', 'audit'].includes(tab)) {
+    if (['overview', 'users', 'transactions', 'audit', 'kyc'].includes(tab)) {
       setActiveTab(tab);
     }
   }, [searchParams]);
@@ -86,6 +93,47 @@ const AdminDashboard = () => {
       console.error('Failed to fetch admin macro data', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadKycRequests = async () => {
+    setKycLoading(true);
+    try {
+      const res = await api.get('/admin/kyc/pending');
+      if (res.data?.success) setKycRequests(res.data.data || []);
+    } catch (e) {
+      console.error('Failed to load KYC requests', e);
+    } finally {
+      setKycLoading(false);
+    }
+  };
+
+  const handleApproveKyc = async (userId) => {
+    setKycActionLoading(userId);
+    try {
+      await api.post(`/admin/kyc/${userId}/approve`);
+      await loadKycRequests();
+      await loadMacroData();
+    } catch (err) {
+      alert(err.response?.data?.message || 'Failed to approve KYC');
+    } finally {
+      setKycActionLoading(null);
+    }
+  };
+
+  const handleRejectKyc = async () => {
+    if (!showRejectModal || !rejectReason.trim()) return;
+    setKycActionLoading(showRejectModal.id);
+    try {
+      await api.post(`/admin/kyc/${showRejectModal.id}/reject`, { reason: rejectReason });
+      setShowRejectModal(null);
+      setRejectReason('');
+      await loadKycRequests();
+      await loadMacroData();
+    } catch (err) {
+      alert(err.response?.data?.message || 'Failed to reject KYC');
+    } finally {
+      setKycActionLoading(null);
     }
   };
 
@@ -320,6 +368,20 @@ const AdminDashboard = () => {
         >
           <Fingerprint className="w-3.5 h-3.5" />
           <span>Security & Audit Trail ({auditLogs.length})</span>
+        </button>
+        <button
+          onClick={() => { setActiveTab('kyc'); setSearchParams({ tab: 'kyc' }); loadKycRequests(); }}
+          className={`px-4 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap flex items-center space-x-1.5 ${
+            activeTab === 'kyc' ? 'bg-orange-600 text-white' : 'text-slate-600 hover:bg-slate-100'
+          }`}
+        >
+          <ShieldCheck className="w-3.5 h-3.5" />
+          <span>KYC Approvals</span>
+          {metrics?.pendingKycCount > 0 && (
+            <span className="px-1.5 py-0.5 rounded-full bg-orange-500 text-white text-[9px] font-extrabold">
+              {metrics.pendingKycCount}
+            </span>
+          )}
         </button>
       </div>
 
@@ -1161,6 +1223,169 @@ const AdminDashboard = () => {
                 ))}
               </tbody>
             </table>
+          </div>
+        </div>
+      )}
+
+      {/* ============================================ */}
+      {/* TAB 4: KYC APPROVALS                         */}
+      {/* ============================================ */}
+      {activeTab === 'kyc' && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-sm font-extrabold text-slate-900 flex items-center space-x-2">
+                <ShieldCheck className="w-4 h-4 text-orange-600" />
+                <span>KYC Verification Queue</span>
+                {kycRequests.length > 0 && (
+                  <span className="px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 text-[10px] font-bold">
+                    {kycRequests.length} Pending
+                  </span>
+                )}
+              </h3>
+              <p className="text-xs text-slate-400 mt-0.5">Review and approve or reject customer KYC applications submitted via PAN + Aadhaar + Video KYC</p>
+            </div>
+            <button
+              onClick={loadKycRequests}
+              className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 text-xs font-semibold transition"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              <span>Refresh</span>
+            </button>
+          </div>
+
+          {kycLoading && (
+            <div className="space-y-3">
+              {[1,2,3].map(i => <div key={i} className="h-32 bg-slate-100 rounded-2xl animate-pulse" />)}
+            </div>
+          )}
+
+          {!kycLoading && kycRequests.length === 0 && (
+            <div className="p-12 rounded-3xl bg-white border border-slate-200/80 shadow-xs flex flex-col items-center text-center space-y-3">
+              <div className="w-14 h-14 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                <CheckCircle2 className="w-7 h-7" />
+              </div>
+              <p className="text-sm font-bold text-slate-900">All Clear — No Pending KYC Applications</p>
+              <p className="text-xs text-slate-400 max-w-sm">All submitted KYC documents have been reviewed. New applications will appear here when customers complete the digital KYC wizard.</p>
+            </div>
+          )}
+
+          {!kycLoading && kycRequests.length > 0 && (
+            <div className="space-y-3">
+              {kycRequests.map(req => (
+                <div key={req.id} className="p-5 rounded-2xl bg-white border border-orange-200/60 shadow-xs hover:border-orange-300 transition">
+                  <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+                    {/* Customer Info */}
+                    <div className="flex items-start space-x-4">
+                      <div className="w-11 h-11 rounded-xl bg-orange-100 text-orange-700 flex items-center justify-center font-extrabold text-base flex-shrink-0">
+                        {req.fullName?.charAt(0).toUpperCase()}
+                      </div>
+                      <div>
+                        <p className="text-sm font-extrabold text-slate-900">{req.fullName}</p>
+                        <p className="text-xs text-slate-500">{req.email} &bull; +91{req.mobileNumber}</p>
+                        <p className="text-[11px] text-slate-400 mt-0.5">@{req.username}</p>
+                      </div>
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div className="flex items-center space-x-2 flex-shrink-0">
+                      <button
+                        disabled={kycActionLoading === req.id}
+                        onClick={() => handleApproveKyc(req.id)}
+                        className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition flex items-center space-x-1.5 disabled:opacity-50"
+                      >
+                        <CheckCircle2 className="w-3.5 h-3.5" />
+                        <span>{kycActionLoading === req.id ? 'Processing…' : 'Approve'}</span>
+                      </button>
+                      <button
+                        disabled={kycActionLoading === req.id}
+                        onClick={() => { setShowRejectModal(req); setRejectReason(''); }}
+                        className="px-4 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-bold transition flex items-center space-x-1.5 disabled:opacity-50"
+                      >
+                        <XCircle className="w-3.5 h-3.5" />
+                        <span>Reject</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* KYC Document Details */}
+                  <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-3 pt-4 border-t border-slate-100">
+                    <div>
+                      <span className="text-[10px] uppercase font-bold text-slate-400 block">PAN Number</span>
+                      <span className="text-xs font-mono font-bold text-slate-800">{req.panNumber || '—'}</span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] uppercase font-bold text-slate-400 block">Aadhaar</span>
+                      <span className="text-xs font-mono font-bold text-slate-800">{req.aadhaarNumber || '—'}</span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] uppercase font-bold text-slate-400 block">Date of Birth</span>
+                      <span className="text-xs font-bold text-slate-800">{req.dateOfBirth || '—'}</span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] uppercase font-bold text-slate-400 block">V-KYC Reference</span>
+                      <span className="text-xs font-mono font-bold text-brand-700">{req.vkycReference || '—'}</span>
+                    </div>
+                  </div>
+
+                  <div className="mt-2 flex items-center space-x-2">
+                    <span className="px-2 py-0.5 rounded-full text-[9px] font-extrabold bg-orange-50 text-orange-700 border border-orange-200 uppercase tracking-wide">
+                      KYC SUBMITTED
+                    </span>
+                    <span className="text-[10px] text-slate-400">
+                      Submitted: {req.createdAt ? new Date(req.createdAt).toLocaleString('en-IN') : 'N/A'}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Reject KYC Modal */}
+      {showRejectModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-white w-full max-w-md rounded-3xl p-6 shadow-2xl border border-slate-100">
+            <div className="flex items-center justify-between mb-5">
+              <div className="flex items-center space-x-2">
+                <div className="w-9 h-9 rounded-xl bg-rose-100 text-rose-700 flex items-center justify-center">
+                  <XCircle className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900">Reject KYC Application</h3>
+                  <p className="text-xs text-slate-500">{showRejectModal.fullName}</p>
+                </div>
+              </div>
+              <button onClick={() => setShowRejectModal(null)} className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <label className="block text-xs font-bold text-slate-700 mb-2">Rejection Reason (will be sent to customer)</label>
+            <textarea
+              rows={3}
+              value={rejectReason}
+              onChange={e => setRejectReason(e.target.value)}
+              placeholder="e.g. PAN number does not match records. Please re-submit with correct PAN..."
+              className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-rose-500 resize-none"
+            />
+
+            <div className="flex space-x-3 mt-4">
+              <button
+                onClick={() => setShowRejectModal(null)}
+                className="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 text-xs font-semibold hover:bg-slate-50 transition"
+              >
+                Cancel
+              </button>
+              <button
+                disabled={!rejectReason.trim() || kycActionLoading === showRejectModal.id}
+                onClick={handleRejectKyc}
+                className="flex-1 px-4 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition disabled:opacity-50"
+              >
+                {kycActionLoading === showRejectModal.id ? 'Rejecting…' : 'Confirm Rejection'}
+              </button>
+            </div>
           </div>
         </div>
       )}

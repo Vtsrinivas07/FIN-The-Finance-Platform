@@ -35,6 +35,7 @@ public class AdminService {
     private final AuditLogRepository auditLogRepository;
     private final AccountService accountService;
     private final AuditService auditService;
+    private final NotificationService notificationService;
 
     @Transactional(readOnly = true)
     public AdminMetricsResponse getMetrics() {
@@ -46,6 +47,7 @@ public class AdminService {
         long successfulTx = transactionRepository.countByStatus(Transaction.TransactionStatus.SUCCESS);
         long failedTx = transactionRepository.countByStatus(Transaction.TransactionStatus.FAILED);
         BigDecimal volume = transactionRepository.getTotalTransactionVolume();
+        long pendingKyc = userRepository.countByKycStatus(User.KycStatus.SUBMITTED);
 
         return AdminMetricsResponse.builder()
                 .totalCustomers(totalCustomers)
@@ -55,6 +57,7 @@ public class AdminService {
                 .failedTransactions(failedTx)
                 .totalTransactionVolume(volume != null ? volume : BigDecimal.ZERO)
                 .pendingQueries(0)
+                .pendingKycCount(pendingKyc)
                 .build();
     }
 
@@ -242,5 +245,75 @@ public class AdminService {
                 .recipientInfo(tx.getRecipientInfo())
                 .createdAt(tx.getCreatedAt())
                 .build()).collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public List<UserProfileResponse> getPendingKycRequests() {
+        return userRepository.findByKycStatus(User.KycStatus.SUBMITTED).stream()
+                .map(user -> UserProfileResponse.builder()
+                        .id(user.getId())
+                        .username(user.getUsername())
+                        .fullName(user.getFullName())
+                        .email(user.getEmail())
+                        .mobileNumber(user.getMobileNumber())
+                        .address(user.getAddress())
+                        .role(user.getRole().getName().name())
+                        .status(user.getStatus().name())
+                        .kycStatus(user.getKycStatus().name())
+                        .panNumber(user.getPanNumber())
+                        .aadhaarNumber(user.getAadhaarNumber())
+                        .dateOfBirth(user.getDateOfBirth())
+                        .vkycReference(user.getVkycReference())
+                        .createdAt(user.getCreatedAt())
+                        .build())
+                .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public void approveKyc(Long userId, User adminUser) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        if (user.getKycStatus() != User.KycStatus.SUBMITTED) {
+            throw new com.bank.exception.BadRequestException("User KYC is not in SUBMITTED state");
+        }
+
+        user.setKycStatus(User.KycStatus.VERIFIED_TIER_3);
+        user.setKycRejectReason(null);
+        userRepository.save(user);
+
+        notificationService.createNotification(
+                user,
+                "KYC Approved - Full KYC (Tier 3)",
+                "Your KYC verification has been approved by a bank officer. Your account is now Full KYC Verified (Tier 3) with unlimited transaction limits under RBI guidelines.",
+                com.bank.entity.Notification.NotificationType.SECURITY_ALERT
+        );
+
+        auditService.log(adminUser, "KYC_APPROVED", "User", user.getId().toString(), "SUCCESS", null,
+                "Admin approved Full KYC Tier-3 for user: " + user.getUsername());
+    }
+
+    @Transactional
+    public void rejectKyc(Long userId, String reason, User adminUser) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        if (user.getKycStatus() != User.KycStatus.SUBMITTED) {
+            throw new com.bank.exception.BadRequestException("User KYC is not in SUBMITTED state");
+        }
+
+        user.setKycStatus(User.KycStatus.REJECTED);
+        user.setKycRejectReason(reason);
+        userRepository.save(user);
+
+        notificationService.createNotification(
+                user,
+                "KYC Verification Rejected",
+                "Your KYC verification was rejected. Reason: " + reason + ". Please re-submit your documents.",
+                com.bank.entity.Notification.NotificationType.SECURITY_ALERT
+        );
+
+        auditService.log(adminUser, "KYC_REJECTED", "User", user.getId().toString(), "SUCCESS", null,
+                "Admin rejected KYC for user: " + user.getUsername() + ". Reason: " + reason);
     }
 }

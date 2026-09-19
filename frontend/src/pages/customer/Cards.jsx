@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
+import { useAuth } from '../../context/AuthContext';
 import confetti from 'canvas-confetti';
 import {
   CreditCard,
@@ -13,6 +15,8 @@ import {
   CheckCircle2,
   Cpu,
   ShieldCheck,
+  ShieldAlert,
+  ChevronRight,
   Sparkles,
   Award,
   Zap,
@@ -21,6 +25,9 @@ import {
 } from 'lucide-react';
 
 const Cards = () => {
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const isKycVerified = user?.kycStatus === 'VERIFIED_TIER_3';
   const [cards, setCards] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('DEBIT'); // 'DEBIT' | 'CREDIT'
@@ -318,7 +325,41 @@ const Cards = () => {
       )}
 
       {/* TAB 2: CREDIT CARD */}
-      {activeTab === 'CREDIT' && (
+      {activeTab === 'CREDIT' && !isKycVerified ? (
+        <div className="p-8 sm:p-10 rounded-3xl bg-white border border-amber-200/80 shadow-xs flex flex-col items-center text-center space-y-4 animate-in fade-in">
+          <div className="w-16 h-16 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center">
+            <Lock className="w-8 h-8" />
+          </div>
+          <div className="max-w-md space-y-2">
+            <span className="px-2.5 py-1 rounded-full bg-amber-100 text-amber-800 text-[10px] font-extrabold uppercase tracking-wide">
+              RBI Compliance Requirement
+            </span>
+            <h3 className="text-base font-extrabold text-slate-900">
+              Credit Card Issuance Locked — Full KYC Required
+            </h3>
+            <p className="text-xs text-slate-500 leading-relaxed">
+              Under RBI Master Direction guidelines, credit card lines and cards can only be issued to customers who have completed <strong>Full KYC (Tier 3)</strong> and received approval from a Bank Admin.
+            </p>
+            <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-700 flex items-center justify-between">
+              <span className="font-medium">Your Current Status:</span>
+              <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase ${
+                user?.kycStatus === 'SUBMITTED' ? 'bg-orange-100 text-orange-700' :
+                user?.kycStatus === 'REJECTED' ? 'bg-rose-100 text-rose-700' : 'bg-slate-200 text-slate-700'
+              }`}>
+                {user?.kycStatus === 'SUBMITTED' ? 'Submitted (Awaiting Admin Review)' :
+                 user?.kycStatus === 'REJECTED' ? 'Rejected' : 'Tier 1 (Minimum KYC)'}
+              </span>
+            </div>
+          </div>
+          <button
+            onClick={() => navigate('/dashboard')}
+            className="px-5 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold transition flex items-center space-x-1.5 shadow-md shadow-brand-600/20"
+          >
+            <span>{user?.kycStatus === 'SUBMITTED' ? 'View KYC Status on Dashboard' : 'Complete Video KYC on Dashboard'}</span>
+            <ChevronRight className="w-4 h-4" />
+          </button>
+        </div>
+      ) : activeTab === 'CREDIT' && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start animate-in fade-in">
           {/* Credit Card Physical Mockup (Obsidian Gold finish) */}
           <div className="flex flex-col items-center">

@@ -171,7 +171,24 @@ public class AuthService {
     }
 
     @Transactional
+    public String generateKycOtp(User user, String aadhaarNumber) {
+        String rawAadhaar = aadhaarNumber.replaceAll("[^0-9]", "");
+        if (rawAadhaar.length() != 12) {
+            throw new BadRequestException("Aadhaar number must be 12 digits");
+        }
+        String otp = String.valueOf(100000 + new Random().nextInt(900000));
+        user.setKycOtp(otp);
+        userRepository.save(user);
+        return otp;
+    }
+
+    @Transactional
     public UserProfileResponse submitKyc(User user, KycSubmitRequest request) {
+        // Validate OTP against stored OTP
+        if (user.getKycOtp() == null || !user.getKycOtp().equals(request.getOtp())) {
+            throw new BadRequestException("Invalid Aadhaar OTP. Please request a new OTP and try again.");
+        }
+
         String rawPan = request.getPanNumber().trim().toUpperCase();
         String maskedPan = "••••• " + rawPan.substring(Math.max(0, rawPan.length() - 5));
 
@@ -182,21 +199,23 @@ public class AuthService {
                 ? request.getVkycReference()
                 : "VKYC-2026-" + (10000 + new Random().nextInt(90000));
 
-        user.setKycStatus(User.KycStatus.VERIFIED_TIER_3);
+        user.setKycStatus(User.KycStatus.SUBMITTED);
         user.setPanNumber(maskedPan);
         user.setAadhaarNumber(maskedAadhaar);
         user.setDateOfBirth(request.getDateOfBirth());
         user.setVkycReference(vkycRef);
+        user.setKycOtp(null);
+        user.setKycRejectReason(null);
         userRepository.save(user);
 
         notificationService.createNotification(
                 user,
-                "KYC Verification Completed",
-                "Your account is now Full KYC Verified (Tier 3) under RBI guidelines with unlimited limits.",
+                "KYC Submitted for Review",
+                "Your KYC documents have been submitted successfully. A bank officer will review and approve your verification within 24 hours.",
                 NotificationType.SECURITY_ALERT
         );
 
-        auditService.log(user, "KYC_VERIFIED", "User", user.getId().toString(), "SUCCESS", null, "Full KYC Tier-3 verified via Aadhaar & V-KYC");
+        auditService.log(user, "KYC_SUBMITTED", "User", user.getId().toString(), "SUCCESS", null, "KYC documents submitted for admin review");
 
         return getProfile(user.getUsername());
     }

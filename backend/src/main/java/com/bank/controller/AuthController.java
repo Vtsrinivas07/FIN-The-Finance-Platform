@@ -56,12 +56,25 @@ public class AuthController {
         return ResponseEntity.ok(ApiResponse.success("Profile updated successfully", response));
     }
 
+    @PostMapping("/kyc/send-otp")
+    @Operation(summary = "Generate Aadhaar OTP for KYC", description = "Simulates UIDAI OTP generation. Stores OTP server-side and returns it (simulated SMS for showcase)")
+    public ResponseEntity<ApiResponse<java.util.Map<String, String>>> sendKycOtp(@RequestBody java.util.Map<String, String> body) {
+        User user = securityUtils.getAuthenticatedUser();
+        String aadhaarNumber = body.get("aadhaarNumber");
+        if (aadhaarNumber == null || aadhaarNumber.isBlank()) {
+            throw new com.bank.exception.BadRequestException("Aadhaar number is required");
+        }
+        String otp = authService.generateKycOtp(user, aadhaarNumber);
+        return ResponseEntity.ok(ApiResponse.success("OTP sent to registered mobile",
+                java.util.Map.of("otp", otp, "mobile", user.getMobileNumber())));
+    }
+
     @PostMapping("/kyc/submit")
-    @Operation(summary = "Submit digital KYC", description = "Verifies PAN, Aadhaar OTP, and Video KYC to upgrade user to Full KYC Tier 3")
+    @Operation(summary = "Submit digital KYC", description = "Verifies PAN, Aadhaar OTP, and Video KYC and submits for admin approval")
     public ResponseEntity<ApiResponse<UserProfileResponse>> submitKyc(@Valid @RequestBody com.bank.dto.request.KycSubmitRequest request) {
         User user = securityUtils.getAuthenticatedUser();
         UserProfileResponse response = authService.submitKyc(user, request);
-        return ResponseEntity.ok(ApiResponse.success("KYC verified successfully. Upgraded to Full KYC (Tier 3).", response));
+        return ResponseEntity.ok(ApiResponse.success("KYC submitted successfully. Pending admin approval.", response));
     }
 
     @PostMapping("/change-password")

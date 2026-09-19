@@ -18,4 +18,5 @@ public class AdminMetricsResponse {
     private long failedTransactions;
     private BigDecimal totalTransactionVolume;
     private long pendingQueries;
+    private long pendingKycCount;
 }

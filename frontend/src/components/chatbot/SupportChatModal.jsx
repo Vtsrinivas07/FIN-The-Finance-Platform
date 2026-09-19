@@ -3,6 +3,7 @@ import { MessageSquare, X, Send, Bot, User, Sparkles, HelpCircle } from 'lucide-
 import api from '../../services/api';
 
 const FAQ_CHIPS = [
+  "How does KYC verification work?",
   "What is my CIBIL score?",
   "Fixed Deposit 7.25% interest rates?",
   "Pre-approved instant loan limit?",

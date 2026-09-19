@@ -176,6 +176,10 @@ public class SupportChatService {
             return "FIN provides direct access to zero-commission mutual fund SIPs (such as Nifty 50 Index), term life insurance up to ₹1 Crore, and comprehensive ₹10 Lakh health cover with zero co-pay, backed by SEBI and IRDAI regulated partners. Check the 'Wealth & Insurance' card on your Dashboard.";
         }
 
+        if (normalized.contains("kyc") || normalized.contains("aadhar") || normalized.contains("aadhaar") || normalized.contains("video kyc") || normalized.contains("vkyc") || normalized.contains("tier 3")) {
+            return "FIN Digital KYC is an RBI-compliant 3-step verification:\n1. PAN Card Verification: Enter your valid 10-character PAN.\n2. Aadhaar e-KYC: Verify via real-time 6-digit OTP sent to your registered mobile.\n3. Live Video KYC: Live facial liveness scan via your webcam.\nOnce submitted, your application is reviewed and approved by Bank Admin in the KYC Queue. Approved accounts are upgraded to Full KYC (Tier 3) with unlimited transaction limits.";
+        }
+
         // 6. Generative AI Engine (Google Gemini / OpenAI) with privacy-sanitized grounding context
         if (aiChatService.isAiConfigured()) {
             try {

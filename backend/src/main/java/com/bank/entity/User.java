@@ -78,9 +78,17 @@ public class User {
     @Column(name = "vkyc_reference", length = 50)
     private String vkycReference;
 
+    @Column(name = "kyc_otp", length = 10)
+    private String kycOtp;
+
+    @Column(name = "kyc_reject_reason", length = 255)
+    private String kycRejectReason;
+
     public enum KycStatus {
         PENDING,
-        VERIFIED_TIER_3
+        SUBMITTED,
+        VERIFIED_TIER_3,
+        REJECTED
     }
 
     public enum UserStatus {
