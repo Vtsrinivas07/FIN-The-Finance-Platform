@@ -12,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import org.springframework.jdbc.core.JdbcTemplate;
 import java.util.Arrays;
 import java.util.List;
 
@@ -29,11 +30,21 @@ public class DataInitializationService implements CommandLineRunner {
     private final SupportFAQRepository supportFAQRepository;
     private final BeneficiaryRepository beneficiaryRepository;
     private final PasswordEncoder passwordEncoder;
+    private final JdbcTemplate jdbcTemplate;
 
     @Override
     @Transactional
     public void run(String... args) {
         log.info("Initializing database seed data...");
+
+        // Fix check constraints for extended enum values (SUBMITTED, REJECTED)
+        try {
+            jdbcTemplate.execute("ALTER TABLE users DROP CONSTRAINT IF EXISTS users_kyc_status_check");
+            jdbcTemplate.execute("ALTER TABLE users ADD CONSTRAINT users_kyc_status_check CHECK (kyc_status IN ('PENDING', 'SUBMITTED', 'VERIFIED_TIER_3', 'REJECTED'))");
+            log.info("Ensured users_kyc_status_check constraint includes SUBMITTED and REJECTED");
+        } catch (Exception e) {
+            log.warn("Notice: users_kyc_status_check constraint update skipped or dialect-specific: {}", e.getMessage());
+        }
 
         // 1. Roles
         Role customerRole = roleRepository.findByName(Role.RoleType.ROLE_CUSTOMER)
