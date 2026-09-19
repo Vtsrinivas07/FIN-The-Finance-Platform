@@ -1,318 +1,207 @@
-<div align="center">
+# FIN - Digital Banking Platform
 
-# 🏦 FIN - Digital Banking
-
-**A modern, full-stack digital banking platform built with Spring Boot & React**
-
-![Spring Boot](https://img.shields.io/badge/Spring_Boot-3.3-6DB33F?style=for-the-badge&logo=springboot&logoColor=white)
-![React](https://img.shields.io/badge/React-19-61DAFB?style=for-the-badge&logo=react&logoColor=black)
-![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4.3-06B6D4?style=for-the-badge&logo=tailwindcss&logoColor=white)
-![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1?style=for-the-badge&logo=postgresql&logoColor=white)
-![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?style=for-the-badge&logo=docker&logoColor=white)
-
-</div>
+A full-stack, enterprise-grade digital banking simulation platform built with Spring Boot, React, and PostgreSQL.
 
 ---
 
-## 📋 Overview
+## 1. Overview
 
-**FIN** is a production-grade digital banking platform that simulates a complete banking ecosystem — from customer-facing dashboards to administrative operations consoles. Built with a modern enterprise stack (Spring Boot 3 + React 19 + Tailwind CSS 4), it showcases clean architecture, JWT-based security, real-time analytics, and a premium banking UI inspired by HDFC, ICICI, and SBI digital experiences.
+FIN is a digital banking platform that replicates the core architecture and features of modern retail and commercial banking systems. It provides a dual-portal ecosystem:
 
-> **Note:** This application simulates banking operations. All balances, transactions, and financial products are processed within the application environment.
+- **Customer Banking Portal**: Daily financial management, fund transfers, bill settlements, card management, financial product simulations, spending analytics, and AI-assisted support.
+- **Admin Operations Console**: Banking operations oversight, customer relationship management (CIF inquiry), anti-money laundering (AML) inquiry, and system-wide security auditing.
 
----
-
-## ✨ Features
-
-### 🏠 Customer Portal
-
-| Feature | Description |
-|---|---|
-| **Account Dashboard** | Real-time balance display, income/expense summaries, spending category analytics, and recent transaction feed |
-| **UPI & Bank Transfers** | Send money via UPI (phone number lookup) or direct bank account transfers with 4-digit UPI PIN verification |
-| **Beneficiary Management** | Add, search, and manage saved payees — integrated directly within the Transfers module |
-| **Bill Payments** | Pay electricity, water, gas, broadband, DTH, and mobile recharge with real-time balance deduction |
-| **Debit & Credit Cards** | Virtual card display, freeze/unfreeze toggle, contactless/international/online shopping controls |
-| **Financial Products Hub** | CIBIL credit health report (785/900 gauge), Fixed Deposits (7.25% p.a. calculator), Pre-Approved Loans (₹5L instant disbursal), Wealth & SIPs, Insurance |
-| **Spending Analytics** | Monthly income vs expense breakdown, category-wise spend analysis |
-| **Transaction History** | Full ledger with filters by type (credit/debit), category, and date range |
-| **AI Chatbot** | 24/7 customer support powered by Google Gemini or OpenAI with grounded banking knowledge |
-| **KYC Verification** | Tier 3 Full KYC verification status with Aadhaar, PAN, and mobile verification |
-| **Deposit / Receive Money** | Add funds to savings account via multiple methods (UPI, NEFT, cash) |
-
-### 🔐 Admin Portal
-
-| Feature | Description |
-|---|---|
-| **Operations Hub** | Real-time KPIs — total customers, accounts, transaction volume, system revenue |
-| **Customer CIF Inquiry** | Search customers by Account Number, Username/CIF, Mobile, PAN, or Email — view full profile, accounts, cards, and transaction history |
-| **Clearing & AML Inquiry** | Look up any transaction by UTR/Reference, Account, or Username — complete audit trail |
-| **Security & Audit Trail** | System-wide security event log with chronological audit entries |
+The application adheres to clean architecture principles, utilizing a decoupled client-server structure with stateless JWT authentication, double-entry ledger bookkeeping, and responsive user interfaces.
 
 ---
 
-## 🛠️ Tech Stack
+## 2. System Architecture
 
-| Layer | Technology |
-|---|---|
-| **Frontend** | React 19, Tailwind CSS 4, Vite 8, React Router 7, Lucide Icons, Axios |
-| **Backend** | Spring Boot 3.3, Spring Security, Spring Data JPA, JWT (JJWT 0.12.5) |
-| **Database** | H2 (development) / PostgreSQL 16 (production) |
-| **AI Chatbot** | Google Gemini API / OpenAI API (auto-fallback to local grounded matcher) |
-| **Containerization** | Docker & Docker Compose (multi-stage builds) |
-| **API Docs** | SpringDoc OpenAPI 3 (Swagger UI) |
+The application is structured into three decoupled layers: presentation, application services, and persistence.
+
+```
++-------------------------------------------------------------------------+
+|                              Client Layer                               |
+|   React 19 SPA (Vite, Tailwind CSS 4, Lucide Icons, Context API)        |
++------------------------------------┬------------------------------------+
+                                     │ HTTPS / REST (JSON) + JWT
+                                     ▼
++-------------------------------------------------------------------------+
+|                    Application Service Layer (Spring Boot 3.3)          |
+|                                                                         |
+|   +-----------------------------------------------------------------+   |
+|   | Security Filter Chain (JWT Authentication, CORS, RBAC)          |   |
+|   +--------------------------------┬--------------------------------+   |
+|                                    ▼                                    |
+|   +-----------------------------------------------------------------+   |
+|   | REST Controllers (Auth, Accounts, Transfers, Cards, Admin, AI)  |   |
+|   +--------------------------------┬--------------------------------+   |
+|                                    ▼                                    |
+|   +-----------------------------------------------------------------+   |
+|   | Business Services (Ledger Engine, Validation, Audit, AI Chat)   |   |
+|   +--------------------------------┬--------------------------------+   |
+|                                    ▼                                    |
+|   +-----------------------------------------------------------------+   |
+|   | Persistence Repositories (Spring Data JPA / Hibernate ORM)      |   |
+|   +-----------------------------------------------------------------+   |
++------------------------------------┬------------------------------------+
+                                     │ JDBC / TLS
+                                     ▼
++-------------------------------------------------------------------------+
+|                           Persistence Layer                             |
+|   PostgreSQL / Embedded H2 (Relational Ledger, ACID Transactions, Logs) |
++-------------------------------------------------------------------------+
+```
+
+### Layer Descriptions
+
+- **Presentation Layer (Frontend)**: React single-page application handling routing, authentication state, real-time validations, and interactive components.
+- **Application Layer (Backend)**: Spring Boot REST API orchestrating business rules, access control, transaction boundaries, and integrations.
+- **Persistence Layer (Database)**: Relational storage enforcing referential integrity, unique constraints, and ACID guarantees for financial transactions.
 
 ---
 
-## 🚀 Getting Started
+## 3. Security and Authentication Architecture
 
-### Prerequisites
+Security is designed around stateless token authentication and role-based access control.
 
-- **Java 20+** (JDK)
-- **Maven 3.9+**
-- **Node.js 18+** & **npm 9+**
-- **PostgreSQL 14+** (for production) or use the embedded H2 database for local development
-- **Docker & Docker Compose** (optional, for containerized deployment)
+### Authentication Lifecycle
 
-### Option 1: Local Development (H2 In-Memory Database)
-
-This is the fastest way to get up and running. No external database required.
-
-```bash
-# 1. Clone the repository
-git clone https://github.com/Vtsrinivas07/Online-Banking-System.git
-cd Online-Banking-System
-
-# 2. Start the Spring Boot Backend (uses H2 by default)
-cd backend
-mvn spring-boot:run
-# Backend starts at http://localhost:8080
-
-# 3. Start the React Frontend (in a new terminal)
-cd ../frontend
-npm install
-npm run dev
-# Frontend starts at http://localhost:5173
-```
-
-### Option 2: Local Development with PostgreSQL
-
-```bash
-# 1. Create a PostgreSQL database
-psql -U postgres -c "CREATE DATABASE bankdb;"
-
-# 2. Copy and configure environment variables
-cp .env.example .env
-# Edit .env with your PostgreSQL credentials
-
-# 3. Start the Backend with 'prod' profile
-cd backend
-mvn spring-boot:run -Dspring-boot.run.profiles=prod \
-  -Dspring-boot.run.arguments="--spring.datasource.url=jdbc:postgresql://localhost:5432/bankdb --spring.datasource.username=postgres --spring.datasource.password=YOUR_PASSWORD"
-
-# 4. Start the Frontend
-cd ../frontend
-npm install
-npm run dev
-```
-
-### Option 3: Docker Compose (Full Stack)
-
-```bash
-# 1. Clone and configure
-git clone https://github.com/Vtsrinivas07/Online-Banking-System.git
-cd Online-Banking-System
-cp .env.example .env
-# Edit .env if needed
-
-# 2. Build and start all services
-docker-compose up --build -d
-
-# Services:
-#   Frontend  → http://localhost:3000
-#   Backend   → http://localhost:8080
-#   PostgreSQL → localhost:5432
-```
+1. **User Authentication**: Client submits credentials to `/api/auth/login`.
+2. **Password Verification**: Passwords are validated using BCrypt salted hashing (`BCryptPasswordEncoder`).
+3. **Token Generation**: Upon verification, the backend issues an HMAC-SHA256 signed JSON Web Token (JWT). The token payload contains user identity and assigned roles (`ROLE_CUSTOMER` or `ROLE_ADMIN`).
+4. **Stateless Authorization**: Client transmits the token via the HTTP `Authorization: Bearer <token>` header on subsequent requests.
+5. **Request Interception**: `JwtAuthenticationFilter` validates token integrity and expiry on each incoming request, establishing the Spring Security context.
+6. **Role-Based Access Control (RBAC)**:
+   - Public access: Authentication endpoints (`/api/auth/**`), OpenAPI documentation (`/swagger-ui/**`, `/api-docs/**`), and support endpoints (`/api/support/**`).
+   - Customer access: Account management, transfers, bill payments, and cards.
+   - Administrator access: Management and audit endpoints (`/api/admin/**`) restricted to `ROLE_ADMIN`.
 
 ---
 
-## 🌐 Deployment Guide
+## 4. Domain Models and Database Schema
 
-### Deploy Backend to Render (Free Tier)
+The database schema utilizes relational constraints, composite checks, and automated entity lifecycle hooks (`@PrePersist`, `@PreUpdate`).
 
-1. **Create a PostgreSQL Database** on [Render](https://render.com) or [Neon](https://neon.tech) or [Supabase](https://supabase.com):
-   - Copy the **External Database URL** (e.g., `jdbc:postgresql://host:5432/bankdb`)
+### Core Entities
 
-2. **Create a Web Service** on Render:
-   - Connect your GitHub repository
-   - **Root Directory:** `backend`
-   - **Build Command:** `mvn clean package -DskipTests`
-   - **Start Command:** `java -jar target/online-banking-backend-1.0.0.jar`
-   - **Environment Variables:**
-     ```
-     SPRING_PROFILES_ACTIVE=prod
-     SPRING_DATASOURCE_URL=jdbc:postgresql://<host>:5432/<db>
-     SPRING_DATASOURCE_USERNAME=<username>
-     SPRING_DATASOURCE_PASSWORD=<password>
-     APP_JWT_SECRET=<your-256-bit-hex-secret>
-     GEMINI_API_KEY=<your-gemini-api-key>  (optional)
-     ```
-
-### Deploy Frontend to Vercel / Netlify
-
-1. **Connect your GitHub repository**
-2. **Configuration:**
-   - **Root Directory:** `frontend`
-   - **Build Command:** `npm run build`
-   - **Output Directory:** `dist`
-   - **Environment Variable:**
-     ```
-     VITE_API_URL=https://your-backend-url.onrender.com/api
-     ```
-3. **Routing:** Add a redirect rule for SPA:
-   - **Vercel:** Create `frontend/vercel.json`:
-     ```json
-     { "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }] }
-     ```
-   - **Netlify:** Create `frontend/public/_redirects`:
-     ```
-     /* /index.html 200
-     ```
-
-### Deploy with Docker Compose (VPS / Cloud VM)
-
-```bash
-# On your server (Ubuntu/Debian)
-git clone https://github.com/Vtsrinivas07/Online-Banking-System.git
-cd Online-Banking-System
-
-# Configure environment
-cp .env.example .env
-nano .env  # Set production database credentials, JWT secret, API keys
-
-# Build and run
-docker-compose up --build -d
-
-# Your app is now running:
-#   Frontend → http://your-server-ip:3000
-#   Backend  → http://your-server-ip:8080
-```
+- **User (`users`)**: Represents customers and administrative personnel. Attributes include username, BCrypt-hashed password, legal full name, verified email, phone number, address, role reference, and account status (`ACTIVE`, `SUSPENDED`, `CLOSED`).
+- **Account (`accounts`)**: Financial balance holder. Contains unique 12-digit account number, account category (`SAVINGS`, `CURRENT`, `SALARY`), monetary balance with fixed precision, currency (`INR`), and operational state.
+- **Transaction (`transactions`)**: Immutable record of fund movements. Contains a UUID primary key, account reference, unique reference number (UTR), debit/credit classification, category (`TRANSFER`, `BILL_PAYMENT`, `RECHARGE`, `DEPOSIT`), status (`SUCCESS`, `PENDING`, `FAILED`, `REVERSED`), description, counterparty details, and paired transaction link.
+- **Card (`cards`)**: Virtual debit and credit cards with masked card numbers, expiry dates, CVVs, card networks (`VISA`, `MASTERCARD`, `RUPAY`), operational limits, and security toggles.
+- **Beneficiary (`beneficiaries`)**: Saved counterparty profiles containing payee names, account numbers, IFSC codes, bank names, and contact details.
+- **Bill & BillProvider (`bills`, `bill_providers`, `recharge_plans`)**: Catalog of utility providers and mobile recharge packages with automated balance deduction.
+- **AuditLog (`audit_logs`)**: Non-repudiation audit ledger capturing user identity, action type, entity references, IP addresses, execution status, and timestamps.
+- **Notification (`notifications`)**: In-app notification queue for transaction alerts and security warnings.
 
 ---
 
-## 📁 Project Structure
+## 5. System Capabilities and Features
 
-```
-Online-Banking-System/
-├── backend/                          # Spring Boot REST API
-│   ├── src/main/java/com/bank/
-│   │   ├── config/                   # Security, CORS, JWT configuration
-│   │   ├── controller/               # REST API endpoints
-│   │   ├── dto/                      # Request/Response DTOs
-│   │   ├── entity/                   # JPA entity models
-│   │   ├── repository/               # Spring Data repositories
-│   │   └── service/                  # Business logic services
-│   ├── src/main/resources/
-│   │   ├── application.yml           # Core configuration
-│   │   ├── application-dev.yml       # H2 development profile
-│   │   └── application-prod.yml      # PostgreSQL production profile
-│   ├── Dockerfile
-│   └── pom.xml
-│
-├── frontend/                         # React SPA
-│   ├── src/
-│   │   ├── components/               # Reusable UI components
-│   │   │   ├── common/               # CibilGaugeChart, SupportChat
-│   │   │   └── layout/               # Layout, Sidebar, Header
-│   │   ├── context/                  # AuthContext (JWT state)
-│   │   ├── pages/
-│   │   │   ├── auth/                 # Login, Register
-│   │   │   ├── customer/             # Dashboard, Transfers, Cards, etc.
-│   │   │   └── admin/                # AdminDashboard
-│   │   ├── services/                 # Axios API client
-│   │   └── App.jsx                   # Route definitions
-│   ├── Dockerfile
-│   ├── nginx.conf
-│   └── package.json
-│
-├── docker-compose.yml                # Full-stack orchestration
-├── .env.example                      # Environment template
-└── README.md
-```
+### Customer Banking Portal
+
+- **Account Dashboard**: Live balance overview, account credentials, recent transaction ledger, and summary metrics for monthly income and expenditure.
+- **Fund Transfers and UPI Engine**:
+  - Direct account-to-account transfers via Account Number and IFSC.
+  - Mobile phone lookup for instant peer-to-peer UPI transfers.
+  - Double-entry ledger mechanism: atomically debits sender and credits recipient within a single database transaction.
+  - 4-digit transaction PIN verification prior to execution.
+- **Beneficiary Management**: Directory of saved payees with validation on account formats and routing codes.
+- **Bill Payments and Telecom Recharges**: Integrated payment channels for electricity, water, piped gas, broadband, DTH, and prepaid mobile top-ups.
+- **Card Controls and Security**:
+  - Virtual card viewer with flip animations.
+  - One-click freeze/unfreeze mechanism for lost or stolen cards.
+  - Individual channel controls for online commerce, contactless (NFC), and international transactions.
+  - Adjustable daily transaction spending limits.
+- **Financial Products Hub**:
+  - CIBIL Credit Score Simulator (evaluating payment history, credit utilization, age, and inquiries).
+  - Fixed Deposit (FD) Center with compounding interest projections (up to 7.25% p.a.).
+  - Instant Pre-Approved Personal Loan calculator with tenure and EMI simulation.
+  - Wealth and SIP investment planning tools.
+  - Insurance overview center.
+- **Spending Analytics**: Breakdown of monthly expenditures categorized by transfers, bills, shopping, food, and utilities.
+- **KYC Verification**: Three-tier identity verification module (Aadhaar, PAN, and mobile verification).
+- **Dual-Engine Customer Support Chat**:
+  - Cloud AI mode powered by LLM APIs (Google Gemini or OpenAI).
+  - Offline fallback mode using an internal grounded natural language matcher to answer banking questions without external dependencies.
+
+### Admin Operations Console
+
+- **Operations Hub**: High-level telemetry displaying total customers, active accounts, daily transaction counters, and aggregate volume.
+- **Customer CIF (Customer Information File) Inquiry**: Search engine to look up users by Account Number, Username/CIF, Mobile Number, PAN, or Email. Displays a 360-degree view of accounts, issued cards, and historical ledgers.
+- **Clearing and AML (Anti-Money Laundering) Inquiry**: Audit and tracking tool for financial transactions across all accounts, searchable by UTR, account, or username.
+- **Security Audit Trail**: System-wide event log recording user logins, administrative modifications, transaction failures, and permission changes.
 
 ---
 
-## 🔑 API Documentation
+## 6. End-to-End Transfer Transaction Lifecycle
 
-Once the backend is running, access the interactive Swagger UI:
+1. **Initiation**: Customer submits recipient information, amount, and transaction PIN through the transfer interface.
+2. **Client Validation**: Frontend checks input formats and ensures the transfer amount is positive.
+3. **Transport**: Authenticated HTTPS request dispatched to `/api/transactions/transfer` with bearer token.
+4. **Security Filter**: `JwtAuthenticationFilter` validates token authenticity and sets user principal.
+5. **Business Validation**:
+   - Sender account verified as active.
+   - Balance evaluated to prevent overdraft.
+   - Recipient identified via account or phone lookup.
+   - Self-transfer loop restrictions validated.
+6. **Ledger Execution**:
+   - Under a `@Transactional` boundary, sender balance is decremented and recipient balance is incremented.
+   - Paired `DEBIT` and `CREDIT` transaction records are generated with a shared UTR.
+7. **Audit and Notification**:
+   - Audit service appends an entry to the compliance ledger.
+   - In-app notification entities generated for involved parties.
+8. **Confirmation**: Transaction response returned to the client, updating UI balance and ledger views.
 
-```
-http://localhost:8080/swagger-ui.html
-```
+---
 
-### Key API Endpoints
+## 7. Technology Stack
 
-| Method | Endpoint | Description |
+| Layer | Component | Details |
 |---|---|---|
-| `POST` | `/api/auth/login` | Authenticate and receive JWT token |
-| `POST` | `/api/auth/register` | Register a new customer account |
-| `GET` | `/api/accounts/primary` | Get primary account details |
-| `POST` | `/api/accounts/deposit` | Deposit funds into account |
-| `POST` | `/api/transactions/transfer` | Execute fund transfer |
-| `GET` | `/api/transactions/history` | Get transaction history |
-| `GET` | `/api/beneficiaries` | List saved beneficiaries |
-| `POST` | `/api/beneficiaries` | Add new beneficiary |
-| `GET` | `/api/cards` | Get linked debit/credit cards |
-| `POST` | `/api/bills/pay` | Pay a utility bill |
-| `POST` | `/api/support/chat` | AI chatbot conversation |
-| `GET` | `/api/admin/users` | Admin: List all customers |
-| `GET` | `/api/admin/transactions` | Admin: View all transactions |
+| **Frontend** | Framework | React 19 (SPA) |
+| | Build Tool | Vite 8 |
+| | Styling | Tailwind CSS 4 |
+| | Routing | React Router 7 |
+| | Icons | Lucide React |
+| | HTTP Client | Axios with JWT Interceptors |
+| **Backend** | Framework | Spring Boot 3.3 |
+| | Language | Java 20 / 21 |
+| | Security | Spring Security, JJWT (0.12.5) |
+| | Persistence | Spring Data JPA, Hibernate 6 |
+| | API Docs | SpringDoc OpenAPI 3 (Swagger UI) |
+| | Utilities | Lombok, Jakarta Validation |
+| **Database** | Production | PostgreSQL 16 |
+| | Development | Embedded H2 In-Memory Database |
+| **AI Support** | Engine | Google Gemini API / OpenAI API / Local Matcher |
 
 ---
 
-## ⚙️ Environment Variables
+## 8. REST API Reference
 
-| Variable | Description | Default |
-|---|---|---|
-| `SPRING_PROFILES_ACTIVE` | `dev` (H2) or `prod` (PostgreSQL) | `dev` |
-| `SPRING_DATASOURCE_URL` | PostgreSQL JDBC URL | — |
-| `SPRING_DATASOURCE_USERNAME` | Database username | `postgres` |
-| `SPRING_DATASOURCE_PASSWORD` | Database password | `postgres` |
-| `APP_JWT_SECRET` | 256-bit hex secret for JWT signing | Built-in default |
-| `AI_PROVIDER` | AI chatbot provider (`auto`/`gemini`/`openai`) | `auto` |
-| `GEMINI_API_KEY` | Google Gemini API key | — |
-| `OPENAI_API_KEY` | OpenAI API key | — |
-| `VITE_API_URL` | Backend API URL for frontend | `http://localhost:8080/api` |
+Interactive API documentation is available via Swagger UI at `/swagger-ui.html`.
 
----
-
-## 🧰 Development Commands
-
-```bash
-# Backend
-cd backend
-mvn spring-boot:run              # Start dev server (H2)
-mvn clean package -DskipTests    # Build production JAR
-mvn test                         # Run unit tests
-
-# Frontend
-cd frontend
-npm run dev                      # Start Vite dev server
-npm run build                    # Production build
-npm run preview                  # Preview production build
-npm run lint                     # Run linter
-```
+| Method | Endpoint | Access Level | Description |
+|---|---|---|---|
+| `POST` | `/api/auth/register` | Public | Register a new customer profile |
+| `POST` | `/api/auth/login` | Public | Authenticate user and receive JWT token |
+| `GET` | `/api/accounts/primary` | Customer | Fetch primary account details and balance |
+| `POST` | `/api/accounts/deposit` | Customer | Simulate funds deposit into savings account |
+| `POST` | `/api/transactions/transfer` | Customer | Execute account or UPI fund transfer |
+| `GET` | `/api/transactions/history` | Customer | Retrieve paginated transaction ledger |
+| `GET` | `/api/beneficiaries` | Customer | List saved beneficiaries |
+| `POST` | `/api/beneficiaries` | Customer | Save a new beneficiary |
+| `GET` | `/api/cards` | Customer | Retrieve issued debit and credit cards |
+| `POST` | `/api/cards/{cardId}/toggle-freeze` | Customer | Freeze or unfreeze a virtual card |
+| `POST` | `/api/bills/pay` | Customer | Execute utility bill or recharge payment |
+| `POST` | `/api/support/chat` | Public | Interact with the AI support assistant |
+| `GET` | `/api/admin/metrics` | Admin | Aggregate system-wide operational metrics |
+| `POST` | `/api/admin/customer-inquiry` | Admin | Execute comprehensive CIF customer lookup |
+| `POST` | `/api/admin/transaction-inquiry` | Admin | Search system-wide clearing and AML records |
+| `GET` | `/api/admin/audit-logs` | Admin | Retrieve security audit trail events |
 
 ---
 
-## 📄 License
+## 9. License
 
-This project is licensed under the [MIT License](LICENSE).
-
----
-
-<div align="center">
-
-**Built with ❤️ by [Srinivas Vuriti](https://github.com/Vtsrinivas07)**
-
-</div>
+This project is open source and available under the terms of the [MIT License](LICENSE).
