@@ -1,207 +1,74 @@
-# FIN - The Finance Platform
+# FIN - Digital Banking Platform
 
-A full-stack, enterprise-grade digital banking simulation platform built with Spring Boot, React, and PostgreSQL.
-
----
-
-## 1. Overview
-
-FIN is a digital banking platform that replicates the core architecture and features of modern retail and commercial banking systems. It provides a dual-portal ecosystem:
-
-- **Customer Banking Portal**: Daily financial management, fund transfers, bill settlements, card management, financial product simulations, spending analytics, and AI-assisted support.
-- **Admin Operations Console**: Banking operations oversight, customer relationship management (CIF inquiry), anti-money laundering (AML) inquiry, and system-wide security auditing.
-
-The application adheres to clean architecture principles, utilizing a decoupled client-server structure with stateless JWT authentication, double-entry ledger bookkeeping, and responsive user interfaces.
+A modern digital banking web application built with Spring Boot and React.
 
 ---
 
-## 2. System Architecture
+## What is FIN?
 
-The application is structured into three decoupled layers: presentation, application services, and persistence.
+FIN is an online banking platform that provides a complete, secure, and easy-to-use banking experience for both customers and bank staff.
 
-```
-+-------------------------------------------------------------------------+
-|                              Client Layer                               |
-|   React 19 SPA (Vite, Tailwind CSS 4, Lucide Icons, Context API)        |
-+------------------------------------┬------------------------------------+
-                                     │ HTTPS / REST (JSON) + JWT
-                                     ▼
-+-------------------------------------------------------------------------+
-|                    Application Service Layer (Spring Boot 3.3)          |
-|                                                                         |
-|   +-----------------------------------------------------------------+   |
-|   | Security Filter Chain (JWT Authentication, CORS, RBAC)          |   |
-|   +--------------------------------┬--------------------------------+   |
-|                                    ▼                                    |
-|   +-----------------------------------------------------------------+   |
-|   | REST Controllers (Auth, Accounts, Transfers, Cards, Admin, AI)  |   |
-|   +--------------------------------┬--------------------------------+   |
-|                                    ▼                                    |
-|   +-----------------------------------------------------------------+   |
-|   | Business Services (Ledger Engine, Validation, Audit, AI Chat)   |   |
-|   +--------------------------------┬--------------------------------+   |
-|                                    ▼                                    |
-|   +-----------------------------------------------------------------+   |
-|   | Persistence Repositories (Spring Data JPA / Hibernate ORM)      |   |
-|   +-----------------------------------------------------------------+   |
-+------------------------------------┬------------------------------------+
-                                     │ JDBC / TLS
-                                     ▼
-+-------------------------------------------------------------------------+
-|                           Persistence Layer                             |
-|   PostgreSQL / Embedded H2 (Relational Ledger, ACID Transactions, Logs) |
-+-------------------------------------------------------------------------+
-```
-
-### Layer Descriptions
-
-- **Presentation Layer (Frontend)**: React single-page application handling routing, authentication state, real-time validations, and interactive components.
-- **Application Layer (Backend)**: Spring Boot REST API orchestrating business rules, access control, transaction boundaries, and integrations.
-- **Persistence Layer (Database)**: Relational storage enforcing referential integrity, unique constraints, and ACID guarantees for financial transactions.
+- **Customer Portal**: Manage your bank account, send money instantly, pay utility bills, control your debit card, apply for credit cards, and explore loans.
+- **Admin Portal**: Search customers, review transactions, approve KYC applications, view audit logs, and respond to customer support inquiries.
 
 ---
 
-## 3. Security and Authentication Architecture
+## Key Features
 
-Security is designed around stateless token authentication and role-based access control.
+### For Customers
 
-### Authentication Lifecycle
+- **Account Dashboard**: View your account balance, account number, IFSC code, and recent transactions.
+- **Money Transfers**:
+  - Send money instantly to any bank account using Account Number and IFSC.
+  - Send money directly to phone numbers via UPI.
+  - Set a 4-digit PIN to keep all transfers secure.
+- **Debit & Credit Cards**:
+  - View your virtual Platinum Debit Card.
+  - Lock or unlock your card anytime with one click.
+  - Turn online shopping, tap-and-pay (NFC), and international usage on or off.
+  - Apply for the FIN Millennia Credit Card with pre-approved limits and rewards.
+- **Bill Payments & Mobile Recharge**:
+  - Pay electricity, water, gas, broadband, and DTH bills.
+  - Recharge prepaid mobile numbers with popular talktime and data packs.
+- **Savings & Loans**:
+  - Open Fixed Deposits and calculate your interest earnings.
+  - Check your credit score with simple score tips.
+  - Calculate monthly EMI for personal loans.
+- **Digital KYC Verification**:
+  - Simple 3-step KYC verification using Aadhaar, PAN, and Video KYC.
+  - Required for account holders (18+ only) to unlock money transfers and credit cards.
+- **24/7 Support Assistant**:
+  - Built-in AI assistant to answer banking questions anytime.
 
-1. **User Authentication**: Client submits credentials to `/api/auth/login`.
-2. **Password Verification**: Passwords are validated using BCrypt salted hashing (`BCryptPasswordEncoder`).
-3. **Token Generation**: Upon verification, the backend issues an HMAC-SHA256 signed JSON Web Token (JWT). The token payload contains user identity and assigned roles (`ROLE_CUSTOMER` or `ROLE_ADMIN`).
-4. **Stateless Authorization**: Client transmits the token via the HTTP `Authorization: Bearer <token>` header on subsequent requests.
-5. **Request Interception**: `JwtAuthenticationFilter` validates token integrity and expiry on each incoming request, establishing the Spring Security context.
-6. **Role-Based Access Control (RBAC)**:
-   - Public access: Authentication endpoints (`/api/auth/**`), OpenAPI documentation (`/swagger-ui/**`, `/api-docs/**`), and support endpoints (`/api/support/**`).
-   - Customer access: Account management, transfers, bill payments, and cards.
-   - Administrator access: Management and audit endpoints (`/api/admin/**`) restricted to `ROLE_ADMIN`.
+### For Bank Administrators
 
----
-
-## 4. Domain Models and Database Schema
-
-The database schema utilizes relational constraints, composite checks, and automated entity lifecycle hooks (`@PrePersist`, `@PreUpdate`).
-
-### Core Entities
-
-- **User (`users`)**: Represents customers and administrative personnel. Attributes include username, BCrypt-hashed password, legal full name, verified email, phone number, address, role reference, and account status (`ACTIVE`, `SUSPENDED`, `CLOSED`).
-- **Account (`accounts`)**: Financial balance holder. Contains unique 12-digit account number, account category (`SAVINGS`, `CURRENT`, `SALARY`), monetary balance with fixed precision, currency (`INR`), and operational state.
-- **Transaction (`transactions`)**: Immutable record of fund movements. Contains a UUID primary key, account reference, unique reference number (UTR), debit/credit classification, category (`TRANSFER`, `BILL_PAYMENT`, `RECHARGE`, `DEPOSIT`), status (`SUCCESS`, `PENDING`, `FAILED`, `REVERSED`), description, counterparty details, and paired transaction link.
-- **Card (`cards`)**: Virtual debit and credit cards with masked card numbers, expiry dates, CVVs, card networks (`VISA`, `MASTERCARD`, `RUPAY`), operational limits, and security toggles.
-- **Beneficiary (`beneficiaries`)**: Saved counterparty profiles containing payee names, account numbers, IFSC codes, bank names, and contact details.
-- **Bill & BillProvider (`bills`, `bill_providers`, `recharge_plans`)**: Catalog of utility providers and mobile recharge packages with automated balance deduction.
-- **AuditLog (`audit_logs`)**: Non-repudiation audit ledger capturing user identity, action type, entity references, IP addresses, execution status, and timestamps.
-- **Notification (`notifications`)**: In-app notification queue for transaction alerts and security warnings.
-
----
-
-## 5. System Capabilities and Features
-
-### Customer Banking Portal
-
-- **Account Dashboard**: Live balance overview, account credentials, recent transaction ledger, and summary metrics for monthly income and expenditure.
-- **Fund Transfers and UPI Engine**:
-  - Direct account-to-account transfers via Account Number and IFSC.
-  - Mobile phone lookup for instant peer-to-peer UPI transfers.
-  - Double-entry ledger mechanism: atomically debits sender and credits recipient within a single database transaction.
-  - 4-digit transaction PIN verification prior to execution.
-- **Beneficiary Management**: Directory of saved payees with validation on account formats and routing codes.
-- **Bill Payments and Telecom Recharges**: Integrated payment channels for electricity, water, piped gas, broadband, DTH, and prepaid mobile top-ups.
-- **Card Controls and Security**:
-  - Virtual card viewer with flip animations.
-  - One-click freeze/unfreeze mechanism for lost or stolen cards.
-  - Individual channel controls for online commerce, contactless (NFC), and international transactions.
-  - Adjustable daily transaction spending limits.
-- **Financial Products Hub**:
-  - CIBIL Credit Score Simulator (evaluating payment history, credit utilization, age, and inquiries).
-  - Fixed Deposit (FD) Center with compounding interest projections (up to 7.25% p.a.).
-  - Instant Pre-Approved Personal Loan calculator with tenure and EMI simulation.
-  - Wealth and SIP investment planning tools.
-  - Insurance overview center.
-- **Spending Analytics**: Breakdown of monthly expenditures categorized by transfers, bills, shopping, food, and utilities.
-- **KYC Verification**: Three-tier identity verification module (Aadhaar, PAN, and mobile verification).
-- **Dual-Engine Customer Support Chat**:
-  - Cloud AI mode powered by LLM APIs (Google Gemini or OpenAI).
-  - Offline fallback mode using an internal grounded natural language matcher to answer banking questions without external dependencies.
-
-### Admin Operations Console
-
-- **Operations Hub**: High-level telemetry displaying total customers, active accounts, daily transaction counters, and aggregate volume.
-- **Customer CIF (Customer Information File) Inquiry**: Search engine to look up users by Account Number, Username/CIF, Mobile Number, PAN, or Email. Displays a 360-degree view of accounts, issued cards, and historical ledgers.
-- **Clearing and AML (Anti-Money Laundering) Inquiry**: Audit and tracking tool for financial transactions across all accounts, searchable by UTR, account, or username.
-- **Security Audit Trail**: System-wide event log recording user logins, administrative modifications, transaction failures, and permission changes.
+- **Operations Overview**: View total customers, active accounts, daily transfer volume, and system status.
+- **Customer Search**: Search any customer quickly using their Account Number, Phone Number, Email, or Username.
+- **Transaction Search**: Find transfer details using a Reference Number (UTR) or Account Number.
+- **KYC Approvals Queue**: Review pending customer KYC documents and approve or reject them with a helpful note.
+- **Security Audit Logs**: Automatically records administrative searches, account updates, and logins.
+- **Customer Support Desk**: Review incoming customer questions and send official bank replies directly.
 
 ---
 
-## 6. End-to-End Transfer Transaction Lifecycle
+## Technology Used
 
-1. **Initiation**: Customer submits recipient information, amount, and transaction PIN through the transfer interface.
-2. **Client Validation**: Frontend checks input formats and ensures the transfer amount is positive.
-3. **Transport**: Authenticated HTTPS request dispatched to `/api/transactions/transfer` with bearer token.
-4. **Security Filter**: `JwtAuthenticationFilter` validates token authenticity and sets user principal.
-5. **Business Validation**:
-   - Sender account verified as active.
-   - Balance evaluated to prevent overdraft.
-   - Recipient identified via account or phone lookup.
-   - Self-transfer loop restrictions validated.
-6. **Ledger Execution**:
-   - Under a `@Transactional` boundary, sender balance is decremented and recipient balance is incremented.
-   - Paired `DEBIT` and `CREDIT` transaction records are generated with a shared UTR.
-7. **Audit and Notification**:
-   - Audit service appends an entry to the compliance ledger.
-   - In-app notification entities generated for involved parties.
-8. **Confirmation**: Transaction response returned to the client, updating UI balance and ledger views.
+- **Frontend**: React, Vite, Tailwind CSS, Lucide Icons
+- **Backend**: Java, Spring Boot, Spring Security (JWT authentication)
+- **Database**: PostgreSQL / H2 In-Memory Database
+- **API Documentation**: Swagger UI (OpenAPI)
 
 ---
 
-## 7. Technology Stack
+## How It Works
 
-| Layer | Component | Details |
-|---|---|---|
-| **Frontend** | Framework | React 19 (SPA) |
-| | Build Tool | Vite 8 |
-| | Styling | Tailwind CSS 4 |
-| | Routing | React Router 7 |
-| | Icons | Lucide React |
-| | HTTP Client | Axios with JWT Interceptors |
-| **Backend** | Framework | Spring Boot 3.3 |
-| | Language | Java 20 / 21 |
-| | Security | Spring Security, JJWT (0.12.5) |
-| | Persistence | Spring Data JPA, Hibernate 6 |
-| | API Docs | SpringDoc OpenAPI 3 (Swagger UI) |
-| | Utilities | Lombok, Jakarta Validation |
-| **Database** | Production | PostgreSQL 16 |
-| | Development | Embedded H2 In-Memory Database |
-| **AI Support** | Engine | Google Gemini API / OpenAI API / Local Matcher |
+1. **Sign Up**: A new user creates an account with their full name, email, phone, and date of birth (must be 18+).
+2. **KYC Verification**: The customer completes their Aadhaar, PAN, and Video KYC submission.
+3. **Admin Review**: Bank staff review and approve the customer's KYC in the Admin Portal.
+4. **Active Banking**: Once approved, the customer can transfer money, pay bills, and apply for a credit card.
 
 ---
 
-## 8. REST API Reference
+## License
 
-Interactive API documentation is available via Swagger UI at `/swagger-ui.html`.
-
-| Method | Endpoint | Access Level | Description |
-|---|---|---|---|
-| `POST` | `/api/auth/register` | Public | Register a new customer profile |
-| `POST` | `/api/auth/login` | Public | Authenticate user and receive JWT token |
-| `GET` | `/api/accounts/primary` | Customer | Fetch primary account details and balance |
-| `POST` | `/api/accounts/deposit` | Customer | Simulate funds deposit into savings account |
-| `POST` | `/api/transactions/transfer` | Customer | Execute account or UPI fund transfer |
-| `GET` | `/api/transactions/history` | Customer | Retrieve paginated transaction ledger |
-| `GET` | `/api/beneficiaries` | Customer | List saved beneficiaries |
-| `POST` | `/api/beneficiaries` | Customer | Save a new beneficiary |
-| `GET` | `/api/cards` | Customer | Retrieve issued debit and credit cards |
-| `POST` | `/api/cards/{cardId}/toggle-freeze` | Customer | Freeze or unfreeze a virtual card |
-| `POST` | `/api/bills/pay` | Customer | Execute utility bill or recharge payment |
-| `POST` | `/api/support/chat` | Public | Interact with the AI support assistant |
-| `GET` | `/api/admin/metrics` | Admin | Aggregate system-wide operational metrics |
-| `POST` | `/api/admin/customer-inquiry` | Admin | Execute comprehensive CIF customer lookup |
-| `POST` | `/api/admin/transaction-inquiry` | Admin | Search system-wide clearing and AML records |
-| `GET` | `/api/admin/audit-logs` | Admin | Retrieve security audit trail events |
-
----
-
-## 9. License
-
-This project is open source and available under the terms of the [MIT License](LICENSE).
+This project is licensed under the MIT License.

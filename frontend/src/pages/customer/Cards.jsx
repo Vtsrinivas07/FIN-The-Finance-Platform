@@ -28,7 +28,8 @@ import {
   Plane,
   Fuel,
   TrendingUp,
-  UserCheck
+  UserCheck,
+  ShoppingBag
 } from 'lucide-react';
 
 const Cards = () => {
