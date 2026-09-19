@@ -60,12 +60,14 @@ class TransferServiceTest {
                 .id(1L)
                 .username("sender")
                 .fullName("Sender User")
+                .kycStatus(User.KycStatus.VERIFIED_TIER_3)
                 .build();
 
         recipientUser = User.builder()
                 .id(2L)
                 .username("recipient")
                 .fullName("Recipient User")
+                .kycStatus(User.KycStatus.VERIFIED_TIER_3)
                 .build();
 
         senderAccount = Account.builder()
@@ -154,6 +156,19 @@ class TransferServiceTest {
         TransferRequest request = TransferRequest.builder()
                 .recipientAccountNumber("100111111111") // Same as sender
                 .amount(new BigDecimal("500.00"))
+                .build();
+
+        when(accountService.getPrimaryAccount(senderUser)).thenReturn(senderAccount);
+
+        assertThrows(BadRequestException.class, () -> transferService.transferFunds(senderUser, request));
+    }
+
+    @Test
+    void transferFunds_PendingKyc_ThrowsBadRequestException() {
+        senderUser.setKycStatus(User.KycStatus.PENDING);
+        TransferRequest request = TransferRequest.builder()
+                .recipientAccountNumber("100222222222")
+                .amount(new BigDecimal("100.00"))
                 .build();
 
         when(accountService.getPrimaryAccount(senderUser)).thenReturn(senderAccount);

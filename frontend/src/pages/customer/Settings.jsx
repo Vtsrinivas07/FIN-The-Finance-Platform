@@ -222,7 +222,7 @@ const Settings = () => {
       </div>
 
       {/* Role-Based Tabs */}
-      <div className="flex space-x-2 border-b border-slate-200 pb-2 overflow-x-auto">
+      <div className="flex space-x-2 border-b border-slate-200 pb-2 overflow-x-auto no-scrollbar">
         <button
           onClick={() => { setActiveTab('profile'); setError(''); }}
           className={`px-4 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap flex items-center space-x-1.5 cursor-pointer ${
@@ -296,7 +296,7 @@ const Settings = () => {
       {activeTab === 'profile' && (
         <div className="space-y-6 animate-in fade-in">
           {/* Personal Info Form */}
-          <div className="bg-white rounded-3xl border border-slate-200/80 shadow-xs p-6 sm:p-8">
+          <div className="bg-white rounded-3xl border border-slate-200/80 shadow-xs p-4 sm:p-8">
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center space-x-3">
                 <div className="w-10 h-10 rounded-xl bg-brand-50 text-brand-600 flex items-center justify-center">
@@ -394,7 +394,7 @@ const Settings = () => {
           </div>
 
           {/* Change Password Card */}
-          <div className="bg-white rounded-3xl border border-slate-200/80 shadow-xs p-6 sm:p-8">
+          <div className="bg-white rounded-3xl border border-slate-200/80 shadow-xs p-4 sm:p-8">
             <div className="flex items-center space-x-3 mb-6">
               <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
                 <Lock className="w-5 h-5" />
@@ -783,7 +783,7 @@ const Settings = () => {
       {/* ======================================================== */}
       {!isAdmin && activeTab === 'contact' && (
         <div className="space-y-6 animate-in fade-in">
-          <div className="bg-white rounded-3xl border border-slate-200/80 shadow-xs p-6 sm:p-8 space-y-6">
+          <div className="bg-white rounded-3xl border border-slate-200/80 shadow-xs p-4 sm:p-8 space-y-6">
             <div className="flex items-center space-x-3">
               <div className="w-10 h-10 rounded-xl bg-brand-50 text-brand-600 flex items-center justify-center">
                 <LifeBuoy className="w-5 h-5" />
@@ -840,7 +840,7 @@ const Settings = () => {
       {/* ======================================================== */}
       {!isAdmin && activeTab === 'privacy' && (
         <div className="space-y-6 animate-in fade-in">
-          <div className="bg-white rounded-3xl border border-slate-200/80 shadow-xs p-6 sm:p-8 space-y-5 text-xs text-slate-600 leading-relaxed">
+          <div className="bg-white rounded-3xl border border-slate-200/80 shadow-xs p-4 sm:p-8 space-y-5 text-xs text-slate-600 leading-relaxed">
             <div className="flex items-center space-x-3 pb-3 border-b border-slate-100">
               <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
                 <ShieldCheck className="w-5 h-5" />
@@ -882,7 +882,7 @@ const Settings = () => {
       {/* ======================================================== */}
       {!isAdmin && activeTab === 'terms' && (
         <div className="space-y-6 animate-in fade-in">
-          <div className="bg-white rounded-3xl border border-slate-200/80 shadow-xs p-6 sm:p-8 space-y-5 text-xs text-slate-600 leading-relaxed">
+          <div className="bg-white rounded-3xl border border-slate-200/80 shadow-xs p-4 sm:p-8 space-y-5 text-xs text-slate-600 leading-relaxed">
             <div className="flex items-center space-x-3 pb-3 border-b border-slate-100">
               <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
                 <FileText className="w-5 h-5" />

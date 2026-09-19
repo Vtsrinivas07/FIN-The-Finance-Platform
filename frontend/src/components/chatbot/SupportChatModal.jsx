@@ -92,7 +92,7 @@ const SupportChatModal = () => {
       {!isOpen && (
         <button
           onClick={() => setIsOpen(true)}
-          className="fixed bottom-16 md:bottom-6 right-4 md:right-6 z-40 flex items-center space-x-2 px-4 py-3 rounded-full bg-brand-600 hover:bg-brand-700 text-white shadow-xl shadow-brand-600/30 hover:scale-105 active:scale-95 transition-all duration-200 group"
+          className="fixed bottom-20 md:bottom-6 right-3 md:right-6 z-40 flex items-center space-x-2 px-3.5 sm:px-4 py-2.5 sm:py-3 rounded-full bg-brand-600 hover:bg-brand-700 text-white shadow-xl shadow-brand-600/30 hover:scale-105 active:scale-95 transition-all duration-200 group"
           aria-label="Open support chat"
         >
           <div className="relative">
@@ -105,7 +105,7 @@ const SupportChatModal = () => {
 
       {/* Floating Chat Panel */}
       {isOpen && (
-        <div className="fixed bottom-16 md:bottom-6 right-2 sm:right-6 z-50 w-[calc(100vw-1rem)] sm:w-96 h-[500px] max-h-[80vh] bg-white rounded-3xl shadow-2xl border border-slate-200/80 flex flex-col overflow-hidden animate-in slide-in-from-bottom-5 duration-200">
+        <div className="fixed bottom-20 md:bottom-6 left-2 right-2 sm:left-auto sm:right-6 z-50 sm:w-96 h-[480px] max-h-[75vh] bg-white rounded-3xl shadow-2xl border border-slate-200/80 flex flex-col overflow-hidden animate-in slide-in-from-bottom-5 duration-200">
           {/* Header */}
           <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-brand-900 px-5 py-4 text-white flex items-center justify-between shadow-md">
             <div className="flex items-center space-x-3">

@@ -281,7 +281,7 @@ const Cards = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
               {/* Debit Card Physical Mockup */}
               <div className="flex flex-col items-center">
-                <div className={`relative w-full max-w-sm aspect-[1.586/1] rounded-3xl p-6 sm:p-7 text-white shadow-2xl flex flex-col justify-between overflow-hidden transition-all duration-300 ${
+                <div className={`relative w-full max-w-sm aspect-[1.586/1] rounded-3xl p-4 sm:p-7 text-white shadow-2xl flex flex-col justify-between overflow-hidden transition-all duration-300 ${
                   card.frozen
                     ? 'bg-gradient-to-tr from-slate-800 to-slate-900 filter grayscale'
                     : 'bg-gradient-to-tr from-slate-950 via-indigo-950 to-brand-900'
@@ -649,7 +649,7 @@ const Cards = () => {
             </div>
 
             {/* Right: Application Form */}
-            <div className="md:col-span-7 bg-white rounded-3xl border border-slate-200/80 shadow-xs p-6 sm:p-7 space-y-5">
+            <div className="md:col-span-7 bg-white rounded-3xl border border-slate-200/80 shadow-xs p-4 sm:p-7 space-y-5">
               <div>
                 <h3 className="text-base font-extrabold text-slate-900">Credit Card Application</h3>
                 <p className="text-xs text-slate-400 mt-0.5">
@@ -658,7 +658,7 @@ const Cards = () => {
               </div>
 
               {/* Verified KYC summary chips */}
-              <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/70 grid grid-cols-2 gap-3 text-xs">
+              <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/70 grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
                 <div>
                   <span className="text-[10px] uppercase font-bold text-slate-400 block">Applicant</span>
                   <span className="font-bold text-slate-800">{user?.fullName || 'Customer'}</span>
@@ -683,7 +683,7 @@ const Cards = () => {
                   <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
                     Employment Type
                   </label>
-                  <div className="grid grid-cols-3 gap-2">
+                  <div className="grid grid-cols-1 xs:grid-cols-3 gap-2">
                     {[
                       { id: 'SALARIED', label: 'Salaried' },
                       { id: 'SELF_EMPLOYED', label: 'Self-Employed' },
@@ -710,7 +710,7 @@ const Cards = () => {
                   <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
                     Approximate Annual Income
                   </label>
-                  <div className="grid grid-cols-3 gap-2">
+                  <div className="grid grid-cols-1 xs:grid-cols-3 gap-2">
                     {[
                       { val: '500000', label: '₹5L – ₹8L' },
                       { val: '800000', label: '₹8L – ₹15L' },

@@ -286,7 +286,7 @@ const Transfers = () => {
         </div>
 
         {/* Top-Level Navigation Switcher */}
-        <div className="flex bg-slate-200/70 p-1.5 rounded-2xl self-start sm:self-auto border border-slate-200">
+        <div className="flex bg-slate-200/70 p-1.5 rounded-2xl w-full sm:w-auto overflow-x-auto no-scrollbar border border-slate-200">
           <button
             type="button"
             onClick={() => { setActiveMainTab('TRANSFER'); setSearchParams({}); }}
@@ -367,34 +367,34 @@ const Transfers = () => {
           )}
 
           {/* Main Card */}
-          <div className="bg-white rounded-3xl border border-slate-200/80 shadow-sm p-6 sm:p-8">
+          <div className="bg-white rounded-3xl border border-slate-200/80 shadow-sm p-4 sm:p-8">
             {/* Step Indicator */}
-            <div className="flex items-center justify-between mb-8 px-4">
+            <div className="flex items-center justify-between mb-8 px-2 sm:px-4">
               <div className="flex flex-col items-center">
                 <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs transition ${
                   step === 'input' ? 'bg-brand-600 text-white ring-4 ring-brand-100' : 'bg-emerald-500 text-white'
                 }`}>
                   1
                 </div>
-                <span className="text-[11px] font-semibold mt-1 text-slate-600">Enter Details</span>
+                <span className="text-[10px] sm:text-[11px] font-semibold mt-1 text-slate-600">Enter Details</span>
               </div>
-              <div className={`flex-1 h-0.5 mx-3 ${step !== 'input' ? 'bg-emerald-500' : 'bg-slate-200'}`} />
+              <div className={`flex-1 h-0.5 mx-2 sm:mx-3 ${step !== 'input' ? 'bg-emerald-500' : 'bg-slate-200'}`} />
               <div className="flex flex-col items-center">
                 <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs transition ${
                   step === 'confirm' ? 'bg-brand-600 text-white ring-4 ring-brand-100' : step === 'success' ? 'bg-emerald-500 text-white' : 'bg-slate-100 text-slate-400'
                 }`}>
                   2
                 </div>
-                <span className="text-[11px] font-semibold mt-1 text-slate-600">Authorize PIN</span>
+                <span className="text-[10px] sm:text-[11px] font-semibold mt-1 text-slate-600">Authorize PIN</span>
               </div>
-              <div className={`flex-1 h-0.5 mx-3 ${step === 'success' ? 'bg-emerald-500' : 'bg-slate-200'}`} />
+              <div className={`flex-1 h-0.5 mx-2 sm:mx-3 ${step === 'success' ? 'bg-emerald-500' : 'bg-slate-200'}`} />
               <div className="flex flex-col items-center">
                 <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs transition ${
                   step === 'success' ? 'bg-emerald-500 text-white ring-4 ring-emerald-100' : 'bg-slate-100 text-slate-400'
                 }`}>
                   3
                 </div>
-                <span className="text-[11px] font-semibold mt-1 text-slate-600">Receipt</span>
+                <span className="text-[10px] sm:text-[11px] font-semibold mt-1 text-slate-600">Receipt</span>
               </div>
             </div>
 
@@ -406,7 +406,7 @@ const Transfers = () => {
                   <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">
                     Select Transfer Method
                   </label>
-                  <div className="grid grid-cols-2 gap-3 p-1.5 bg-slate-100 rounded-2xl">
+                  <div className="grid grid-cols-1 xs:grid-cols-2 gap-2 sm:gap-3 p-1.5 bg-slate-100 rounded-2xl">
                     <button
                       type="button"
                       onClick={() => { setTransferMode('UPI_PHONE'); setError(''); }}
@@ -516,7 +516,7 @@ const Transfers = () => {
                             Manage All Payees →
                           </button>
                         </div>
-                        <div className="grid grid-cols-2 gap-2 max-h-36 overflow-y-auto pr-1">
+                        <div className="grid grid-cols-1 xs:grid-cols-2 gap-2 max-h-36 overflow-y-auto pr-1">
                           {beneficiaries.map((ben) => (
                             <button
                               key={ben.id}
@@ -578,7 +578,7 @@ const Transfers = () => {
                   </div>
 
                   {/* Quick Preset Buttons */}
-                  <div className="flex gap-2 mt-2">
+                  <div className="flex flex-wrap gap-1.5 sm:gap-2 mt-2">
                     {quickAmounts.map(amt => (
                       <button
                         key={amt}

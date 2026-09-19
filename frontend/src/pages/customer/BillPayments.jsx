@@ -176,7 +176,7 @@ const BillPayments = () => {
       </div>
 
       {/* Payment Form or Receipt Card */}
-      <div className="bg-white rounded-3xl border border-slate-200/80 shadow-xs p-6 sm:p-8">
+      <div className="bg-white rounded-3xl border border-slate-200/80 shadow-xs p-4 sm:p-8">
         {!receipt ? (
           <form onSubmit={handlePayment} className="space-y-5">
             <div>

@@ -130,11 +130,11 @@ const SearchModal = ({ isOpen, onClose }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center pt-20 px-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-150">
+    <div className="fixed inset-0 z-50 flex items-start justify-center pt-10 sm:pt-20 px-3 sm:px-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-150">
       <div className="bg-white w-full max-w-xl rounded-2xl shadow-2xl border border-slate-100 overflow-hidden">
         {/* Search Input Box */}
-        <div className="flex items-center px-4 py-3.5 border-b border-slate-200">
-          <Search className="w-5 h-5 text-slate-400 mr-3" />
+        <div className="flex items-center px-3.5 sm:px-4 py-3 sm:py-3.5 border-b border-slate-200">
+          <Search className="w-5 h-5 text-slate-400 mr-2.5 sm:mr-3 flex-shrink-0" />
           <input
             type="text"
             value={query}
@@ -145,15 +145,15 @@ const SearchModal = ({ isOpen, onClose }) => {
                 : 'Search actions, beneficiaries, bills, FAQs...'
             }
             autoFocus
-            className="flex-1 text-sm bg-transparent border-none focus:outline-none text-slate-800 placeholder-slate-400"
+            className="flex-1 text-xs sm:text-sm bg-transparent border-none focus:outline-none text-slate-800 placeholder-slate-400"
           />
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 p-1">
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 p-1 flex-shrink-0">
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Results List */}
-        <div className="max-h-96 overflow-y-auto p-3 space-y-4">
+        <div className="max-h-[60vh] sm:max-h-96 overflow-y-auto p-3 space-y-4">
           {/* Quick Navigation Actions */}
           {filteredActions.length > 0 && (
             <div>

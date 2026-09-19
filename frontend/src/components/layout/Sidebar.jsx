@@ -45,7 +45,7 @@ const Sidebar = ({ isOpen, onClose }) => {
     { name: 'Customer Search', path: '/admin?tab=users', icon: KeyRound },
     { name: 'Transaction Search', path: '/admin?tab=transactions', icon: ArrowLeftRight },
     { name: 'Audit Logs', path: '/admin?tab=audit', icon: ShieldAlert },
-    { name: 'KYC Approvals', path: '/admin?tab=kyc', icon: ShieldCheck },
+    { name: 'Approvals Queue', path: '/admin?tab=kyc', icon: ShieldCheck },
     { name: 'Settings', path: '/settings', icon: Settings },
   ];
 

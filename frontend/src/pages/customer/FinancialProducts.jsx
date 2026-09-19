@@ -270,7 +270,7 @@ const FinancialProducts = () => {
   return (
     <div className="space-y-7 pb-16">
       {/* Top Hero Banner */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-tr from-slate-950 via-slate-900 to-indigo-950 text-white p-6 sm:p-8 shadow-2xl border border-slate-800">
+      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-tr from-slate-950 via-slate-900 to-indigo-950 text-white p-4 sm:p-8 shadow-2xl border border-slate-800">
         <div className="absolute -top-24 -right-24 w-80 h-80 bg-brand-500/20 rounded-full blur-3xl pointer-events-none" />
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div>
@@ -306,7 +306,7 @@ const FinancialProducts = () => {
         </div>
 
         {/* Navigation Sub-Tabs */}
-        <div className="flex items-center space-x-2 overflow-x-auto pt-6 mt-6 border-t border-slate-800 scrollbar-none">
+        <div className="flex items-center space-x-2 overflow-x-auto pt-6 mt-6 border-t border-slate-800 no-scrollbar">
           {[
             { id: 'ALL', label: 'All Products Hub', icon: Sparkles },
             { id: 'CIBIL', label: 'CIBIL Credit Health', icon: Award },

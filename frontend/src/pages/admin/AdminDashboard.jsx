@@ -503,9 +503,9 @@ const AdminDashboard = () => {
             Live overview of customer accounts, transactions, and system security
           </p>
         </div>
-        <div className="flex items-center space-x-3">
+        <div className="flex items-center flex-wrap gap-2">
           {/* Live Indian Standard Time (IST) Clock */}
-          <div className="flex items-center space-x-2 px-3.5 py-2 rounded-xl bg-slate-100 border border-slate-200 text-xs font-mono text-slate-700 shadow-2xs">
+          <div className="flex items-center space-x-2 px-3 py-1.5 sm:py-2 rounded-xl bg-slate-100 border border-slate-200 text-xs font-mono text-slate-700 shadow-2xs">
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
             <span className="font-semibold">
               {currentTime.toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour12: true, hour: '2-digit', minute: '2-digit', second: '2-digit' })} IST
@@ -513,7 +513,7 @@ const AdminDashboard = () => {
           </div>
           <button
             onClick={loadMacroData}
-            className="flex items-center space-x-1.5 px-3.5 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold shadow-xs transition cursor-pointer"
+            className="flex items-center space-x-1.5 px-3 py-1.5 sm:py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold shadow-xs transition cursor-pointer"
           >
             <RotateCcw className="w-3.5 h-3.5" />
             <span>Refresh Data</span>
@@ -522,7 +522,7 @@ const AdminDashboard = () => {
       </div>
 
       {/* Macro Metrics Row */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <div className="p-5 rounded-3xl bg-white border border-slate-200/80 shadow-xs">
           <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">Total Customers</span>
           <p className="text-2xl font-extrabold text-slate-900 mt-1">{metrics?.totalCustomers || 0}</p>
@@ -553,7 +553,7 @@ const AdminDashboard = () => {
       </div>
 
       {/* Tabs Header */}
-      <div className="flex space-x-2 border-b border-slate-200 pb-2 overflow-x-auto">
+      <div className="flex space-x-2 border-b border-slate-200 pb-2 overflow-x-auto no-scrollbar">
         <button
           onClick={() => { setActiveTab('overview'); setSearchParams({}); }}
           className={`px-4 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap ${
@@ -1077,7 +1077,7 @@ const AdminDashboard = () => {
                   <p className="text-xs text-slate-400 py-6 text-center">No transaction records found for this customer account.</p>
                 ) : (
                   <div className="overflow-x-auto">
-                    <table className="w-full text-left text-xs">
+                    <table className="min-w-[650px] w-full text-left text-xs">
                       <thead className="bg-slate-50 border-b border-slate-200/80 text-[11px] font-bold uppercase tracking-wider text-slate-400">
                         <tr>
                           <th className="px-4 py-3">Reference (UTR)</th>
@@ -1251,7 +1251,7 @@ const AdminDashboard = () => {
                 </div>
               ) : (
                 <div className="overflow-x-auto">
-                  <table className="w-full text-left text-xs">
+                  <table className="min-w-[650px] w-full text-left text-xs">
                     <thead className="bg-slate-50 border-b border-slate-200/80 text-[11px] font-bold uppercase tracking-wider text-slate-400">
                       <tr>
                         <th className="px-6 py-3.5">Reference (UTR)</th>
@@ -1319,7 +1319,7 @@ const AdminDashboard = () => {
           </div>
 
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
+            <table className="min-w-[700px] w-full text-left text-xs">
               <thead className="bg-slate-50 border-b border-slate-200/80 text-[11px] font-bold uppercase tracking-wider text-slate-400">
                 <tr>
                   <th className="px-6 py-3.5">Date & Time (IST)</th>
@@ -1397,7 +1397,7 @@ const AdminDashboard = () => {
           )}
 
           {/* Sub-Tabs Selector */}
-          <div className="flex p-1 bg-slate-100 rounded-2xl self-start overflow-x-auto gap-1">
+          <div className="flex p-1 bg-slate-100 rounded-2xl w-full sm:w-auto overflow-x-auto no-scrollbar gap-1">
             <button
               type="button"
               onClick={() => setApprovalsSubTab('kyc')}
@@ -1792,8 +1792,8 @@ const AdminDashboard = () => {
 
       {/* Reject KYC Modal */}
       {showRejectModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <div className="bg-white w-full max-w-md rounded-3xl p-6 shadow-2xl border border-slate-100">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-white w-full max-w-md rounded-3xl p-4 sm:p-6 shadow-2xl border border-slate-100 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-5">
               <div className="flex items-center space-x-2">
                 <div className="w-9 h-9 rounded-xl bg-rose-100 text-rose-700 flex items-center justify-center">

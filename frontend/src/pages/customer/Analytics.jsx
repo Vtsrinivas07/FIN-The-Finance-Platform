@@ -99,7 +99,7 @@ const Analytics = () => {
       {/* Grid: Category Breakdown + Monthly Trend */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Category Breakdown */}
-        <div className="p-6 rounded-3xl bg-white border border-slate-200/80 shadow-xs space-y-4">
+        <div className="p-4 sm:p-6 rounded-3xl bg-white border border-slate-200/80 shadow-xs space-y-4">
           <h3 className="text-base font-bold text-slate-900">Expenses by Category</h3>
           <p className="text-xs text-slate-400 -mt-2">Breakdown of all debited funds</p>
 
@@ -126,7 +126,7 @@ const Analytics = () => {
         </div>
 
         {/* 3-Month Trend Visualization */}
-        <div className="p-6 rounded-3xl bg-white border border-slate-200/80 shadow-xs space-y-4">
+        <div className="p-4 sm:p-6 rounded-3xl bg-white border border-slate-200/80 shadow-xs space-y-4">
           <h3 className="text-base font-bold text-slate-900">Cashflow Trend</h3>
           <p className="text-xs text-slate-400 -mt-2">Monthly Inflow vs Outflow</p>
 

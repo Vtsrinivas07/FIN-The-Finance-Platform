@@ -96,7 +96,7 @@ const Register = () => {
         </div>
 
         {/* Card */}
-        <div className="mt-6 bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl p-6 sm:p-8">
+        <div className="mt-6 bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl p-4 sm:p-8">
           {error && (
             <div className="mb-5 p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs flex items-center space-x-2">
               <AlertCircle className="w-4 h-4 flex-shrink-0 text-rose-400" />

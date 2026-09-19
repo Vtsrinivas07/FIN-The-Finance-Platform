@@ -177,7 +177,7 @@ const Transactions = () => {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
+            <table className="min-w-[650px] w-full text-left text-xs">
               <thead className="bg-slate-50 border-b border-slate-200/80 text-[11px] font-bold uppercase tracking-wider text-slate-400">
                 <tr>
                   <th className="px-6 py-3.5">Type & Reference</th>
@@ -263,8 +263,8 @@ const Transactions = () => {
 
       {/* Transaction Detail Modal */}
       {selectedTx && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-white w-full max-w-md rounded-3xl p-6 sm:p-7 shadow-2xl border border-slate-100">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/50 backdrop-blur-sm animate-in fade-in">
+          <div className="bg-white w-full max-w-md rounded-3xl p-4 sm:p-7 shadow-2xl border border-slate-100 max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-base font-bold text-slate-900">Transaction Details</h3>
               <button onClick={() => setSelectedTx(null)} className="text-slate-400 hover:text-slate-600 p-1">
