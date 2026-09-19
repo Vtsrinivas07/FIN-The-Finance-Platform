@@ -34,7 +34,8 @@ import {
   Coins,
   Smartphone,
   ChevronDown,
-  Check
+  Check,
+  ArrowRight
 } from 'lucide-react';
 
 const CIF_AUTH_OPTIONS = [
