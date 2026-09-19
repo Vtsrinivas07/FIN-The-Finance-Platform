@@ -42,7 +42,7 @@ import {
 import CibilGaugeChart from '../../components/common/CibilGaugeChart';
 
 const Dashboard = () => {
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const navigate = useNavigate();
 
   const [account, setAccount] = useState(null);
@@ -67,8 +67,26 @@ const Dashboard = () => {
   const [gatewayMessage, setGatewayMessage] = useState('');
   const [copiedKey, setCopiedKey] = useState(null);
 
-  // KYC Modal State
+  // KYC Modal & Wizard States
   const [showKycModal, setShowKycModal] = useState(false);
+  const [showKycWizard, setShowKycWizard] = useState(false);
+  const [kycStep, setKycStep] = useState(1);
+  const [panInput, setPanInput] = useState('');
+  const [dobInput, setDobInput] = useState('');
+  const [panValidating, setPanValidating] = useState(false);
+  const [panVerified, setPanVerified] = useState(false);
+  const [aadhaarInput, setAadhaarInput] = useState('');
+  const [otpSent, setOtpSent] = useState(false);
+  const [generatedOtp, setGeneratedOtp] = useState('');
+  const [enteredOtp, setEnteredOtp] = useState('');
+  const [aadhaarVerifying, setAadhaarVerifying] = useState(false);
+  const [aadhaarVerified, setAadhaarVerified] = useState(false);
+  const [vkycScanning, setVkycScanning] = useState(false);
+  const [vkycSuccess, setVkycSuccess] = useState(false);
+  const [kycSubmitting, setKycSubmitting] = useState(false);
+  const [kycError, setKycError] = useState('');
+
+  const isKycVerified = user?.kycStatus === 'VERIFIED_TIER_3' || user?.username === 'demo' || user?.username === 'sarah' || user?.username === 'admin';
 
   // Financial Health & Products Hub States
   const [showCibilModal, setShowCibilModal] = useState(false);
@@ -302,17 +320,33 @@ const Dashboard = () => {
         <div>
           <div className="flex items-center flex-wrap gap-2.5">
             <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
-              Welcome back, {user?.fullName?.split(' ')[0]} 👋
+              Welcome back, {user?.fullName?.split(' ')[0]}
             </h1>
-            <button
-              onClick={() => setShowKycModal(true)}
-              className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200/80 text-[11px] font-bold transition shadow-xs cursor-pointer group"
-              title="Click to view KYC Verification Details"
-            >
-              <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-              <span>Full KYC Verified (Tier 3)</span>
-              <ChevronRight className="w-3 h-3 text-emerald-500 opacity-60 group-hover:translate-x-0.5 transition-transform" />
-            </button>
+            {isKycVerified ? (
+              <button
+                onClick={() => setShowKycModal(true)}
+                className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200/80 text-[11px] font-bold transition shadow-xs cursor-pointer group"
+                title="Click to view KYC Verification Details"
+              >
+                <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+                <span>Full KYC Verified (Tier 3)</span>
+                <ChevronRight className="w-3 h-3 text-emerald-500 opacity-60 group-hover:translate-x-0.5 transition-transform" />
+              </button>
+            ) : (
+              <button
+                onClick={() => {
+                  setShowKycWizard(true);
+                  setKycStep(1);
+                  setKycError('');
+                }}
+                className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 text-[11px] font-bold transition shadow-xs cursor-pointer group animate-pulse"
+                title="Click to complete Video KYC"
+              >
+                <ShieldAlert className="w-3.5 h-3.5 text-amber-600" />
+                <span>KYC Pending (Tier 1 Limited) - Complete V-KYC</span>
+                <ChevronRight className="w-3 h-3 text-amber-600 opacity-80 group-hover:translate-x-0.5 transition-transform" />
+              </button>
+            )}
           </div>
           <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
             Here is your daily account summary and financial wellness hub
@@ -332,6 +366,39 @@ const Dashboard = () => {
           </button>
         </div>
       </div>
+
+      {/* Pending KYC Action Alert Banner */}
+      {!isKycVerified && (
+        <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-amber-50 via-orange-50 to-amber-50 border border-amber-200/90 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4 animate-in fade-in duration-300">
+          <div className="flex items-start space-x-3.5">
+            <div className="w-10 h-10 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center flex-shrink-0 mt-0.5 shadow-xs">
+              <ShieldAlert className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center space-x-2">
+                <span className="px-2 py-0.5 rounded text-[10px] font-extrabold uppercase tracking-wide bg-amber-200/80 text-amber-900 font-mono">
+                  RBI Master Direction
+                </span>
+                <span className="text-xs font-bold text-slate-900">Tier-1 Minimum KYC Account</span>
+              </div>
+              <p className="text-xs text-slate-600 mt-1 max-w-2xl leading-relaxed">
+                Your account is currently under minimum KYC holding limits. Complete your 3-step digital KYC verification (PAN, Aadhaar OTP, and live Video KYC) to upgrade to Full KYC (Tier 3) with unlimited transfers.
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() => {
+              setShowKycWizard(true);
+              setKycStep(1);
+              setKycError('');
+            }}
+            className="px-4 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold shadow-md shadow-amber-600/20 whitespace-nowrap cursor-pointer transition flex items-center justify-center space-x-1.5 self-start sm:self-center"
+          >
+            <span>Complete Video KYC</span>
+            <ChevronRight className="w-4 h-4" />
+          </button>
+        </div>
+      )}
 
       {error && (
         <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center space-x-3">
@@ -1252,7 +1319,7 @@ const Dashboard = () => {
               <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200/80 flex items-center justify-between">
                 <div>
                   <span className="text-[10px] uppercase font-bold text-slate-400 block">Aadhaar (UIDAI Verified)</span>
-                  <span className="font-bold text-slate-900 font-mono">•••• •••• 8921</span>
+                  <span className="font-bold text-slate-900 font-mono">{user?.aadhaarNumber || '•••• •••• 8921'}</span>
                 </div>
                 <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-700">OTP / Biometric Authenticated</span>
               </div>
@@ -1260,7 +1327,7 @@ const Dashboard = () => {
               <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200/80 flex items-center justify-between">
                 <div>
                   <span className="text-[10px] uppercase font-bold text-slate-400 block">Permanent Account Number (PAN)</span>
-                  <span className="font-bold text-slate-900 font-mono">••••• 1234F</span>
+                  <span className="font-bold text-slate-900 font-mono">{user?.panNumber || '••••• 1234F'}</span>
                 </div>
                 <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-700">NSDL Validated</span>
               </div>
@@ -1268,7 +1335,7 @@ const Dashboard = () => {
               <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200/80 flex items-center justify-between">
                 <div>
                   <span className="text-[10px] uppercase font-bold text-slate-400 block">Video KYC (V-KYC)</span>
-                  <span className="font-bold text-slate-900 font-mono">VKYC-2026-90412</span>
+                  <span className="font-bold text-slate-900 font-mono">{user?.vkycReference || 'VKYC-2026-90412'}</span>
                 </div>
                 <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-700">Facial & Geo-match Done</span>
               </div>
@@ -1317,6 +1384,334 @@ const Dashboard = () => {
                 Done
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Interactive Digital KYC Verification Wizard */}
+      {showKycWizard && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white w-full max-w-xl rounded-3xl p-6 sm:p-7 shadow-2xl border border-slate-100 max-h-[92vh] overflow-y-auto">
+            {/* Header */}
+            <div className="flex items-center justify-between pb-4 border-b border-slate-100 mb-5">
+              <div className="flex items-center space-x-2.5">
+                <div className="w-9 h-9 rounded-xl bg-brand-100 text-brand-700 flex items-center justify-center">
+                  <ShieldCheck className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-900">RBI Digital KYC Verification</h3>
+                  <p className="text-xs text-slate-500">Upgrade to Tier 3 Full KYC with unlimited limits</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowKycWizard(false)}
+                className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Stepper Progress Indicator */}
+            <div className="flex items-center justify-between mb-6 px-2">
+              <div className="flex items-center space-x-2">
+                <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${kycStep >= 1 ? 'bg-brand-600 text-white' : 'bg-slate-100 text-slate-400'}`}>
+                  1
+                </div>
+                <span className={`text-xs font-semibold ${kycStep === 1 ? 'text-brand-600 font-bold' : 'text-slate-500'}`}>PAN Card</span>
+              </div>
+              <div className={`flex-1 h-0.5 mx-2 ${kycStep >= 2 ? 'bg-brand-600' : 'bg-slate-200'}`} />
+              <div className="flex items-center space-x-2">
+                <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${kycStep >= 2 ? 'bg-brand-600 text-white' : 'bg-slate-100 text-slate-400'}`}>
+                  2
+                </div>
+                <span className={`text-xs font-semibold ${kycStep === 2 ? 'text-brand-600 font-bold' : 'text-slate-500'}`}>Aadhaar OTP</span>
+              </div>
+              <div className={`flex-1 h-0.5 mx-2 ${kycStep >= 3 ? 'bg-brand-600' : 'bg-slate-200'}`} />
+              <div className="flex items-center space-x-2">
+                <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${kycStep >= 3 ? 'bg-brand-600 text-white' : 'bg-slate-100 text-slate-400'}`}>
+                  3
+                </div>
+                <span className={`text-xs font-semibold ${kycStep === 3 ? 'text-brand-600 font-bold' : 'text-slate-500'}`}>Video KYC</span>
+              </div>
+            </div>
+
+            {kycError && (
+              <div className="p-3 mb-4 rounded-xl bg-red-50 border border-red-200 text-xs text-red-700 flex items-center space-x-2">
+                <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                <span>{kycError}</span>
+              </div>
+            )}
+
+            {/* Step 1: PAN Card & DOB */}
+            {kycStep === 1 && (
+              <div className="space-y-4">
+                <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80">
+                  <span className="text-[10px] uppercase font-bold tracking-wider text-slate-500 block mb-1">Government ID Details</span>
+                  <p className="text-xs text-slate-600">Enter your 10-digit Permanent Account Number (PAN) issued by the Income Tax Department.</p>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">PAN Card Number</label>
+                  <input
+                    type="text"
+                    maxLength={10}
+                    placeholder="e.g. ABCDE1234F"
+                    value={panInput}
+                    onChange={(e) => {
+                      setPanInput(e.target.value.toUpperCase());
+                      setPanVerified(false);
+                      setKycError('');
+                    }}
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 font-mono uppercase text-sm tracking-wider focus:outline-none focus:ring-2 focus:ring-brand-500"
+                  />
+                  <p className="text-[11px] text-slate-400 mt-1">Format: 5 letters, 4 numbers, 1 letter</p>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">Date of Birth (as on PAN)</label>
+                  <input
+                    type="date"
+                    value={dobInput}
+                    onChange={(e) => {
+                      setDobInput(e.target.value);
+                      setKycError('');
+                    }}
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                  />
+                </div>
+
+                <div className="pt-2 flex justify-end">
+                  <button
+                    type="button"
+                    disabled={panValidating}
+                    onClick={() => {
+                      const panRegex = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/;
+                      if (!panRegex.test(panInput)) {
+                        setKycError('Please enter a valid 10-digit PAN format (e.g. ABCDE1234F).');
+                        return;
+                      }
+                      if (!dobInput) {
+                        setKycError('Please enter your Date of Birth.');
+                        return;
+                      }
+                      setPanValidating(true);
+                      setTimeout(() => {
+                        setPanValidating(false);
+                        setPanVerified(true);
+                        setKycStep(2);
+                      }, 800);
+                    }}
+                    className="px-5 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs shadow-md shadow-brand-600/20 transition flex items-center space-x-1.5"
+                  >
+                    <span>{panValidating ? 'Validating with NSDL...' : 'Verify PAN & Continue'}</span>
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Step 2: Aadhaar e-KYC */}
+            {kycStep === 2 && (
+              <div className="space-y-4">
+                <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80">
+                  <span className="text-[10px] uppercase font-bold tracking-wider text-slate-500 block mb-1">UIDAI Aadhaar Verification</span>
+                  <p className="text-xs text-slate-600">Enter your 12-digit Aadhaar number to verify with UIDAI via OTP on your registered mobile number.</p>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">Aadhaar Number</label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      maxLength={12}
+                      placeholder="12-digit Aadhaar Number"
+                      value={aadhaarInput}
+                      onChange={(e) => {
+                        setAadhaarInput(e.target.value.replace(/[^0-9]/g, ''));
+                        setKycError('');
+                      }}
+                      className="flex-1 px-3.5 py-2.5 rounded-xl border border-slate-200 font-mono text-sm tracking-wider focus:outline-none focus:ring-2 focus:ring-brand-500"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (aadhaarInput.length !== 12) {
+                          setKycError('Please enter a valid 12-digit Aadhaar number.');
+                          return;
+                        }
+                        const randomOtp = Math.floor(100000 + Math.random() * 900000).toString();
+                        setGeneratedOtp(randomOtp);
+                        setEnteredOtp(randomOtp);
+                        setOtpSent(true);
+                        setKycError('');
+                      }}
+                      className="px-3.5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition whitespace-nowrap"
+                    >
+                      {otpSent ? 'Resend OTP' : 'Send OTP'}
+                    </button>
+                  </div>
+                </div>
+
+                {otpSent && (
+                  <div className="p-3 rounded-2xl bg-emerald-50 border border-emerald-200 animate-in fade-in duration-200">
+                    <div className="flex items-center space-x-2 text-xs font-bold text-emerald-800 mb-1">
+                      <CheckCircle className="w-4 h-4 text-emerald-600" />
+                      <span>UIDAI OTP Sent to {user?.mobileNumber || 'Registered Mobile'}</span>
+                    </div>
+                    <p className="text-[11px] text-emerald-700">
+                      Simulated UIDAI OTP: <strong className="font-mono text-xs bg-emerald-100 px-1.5 py-0.5 rounded">{generatedOtp}</strong>
+                    </p>
+                    <div className="mt-2.5">
+                      <label className="block text-xs font-bold text-slate-700 mb-1">Enter 6-Digit OTP</label>
+                      <input
+                        type="text"
+                        maxLength={6}
+                        value={enteredOtp}
+                        onChange={(e) => setEnteredOtp(e.target.value.replace(/[^0-9]/g, ''))}
+                        className="w-full px-3.5 py-2 rounded-xl border border-slate-200 font-mono text-sm tracking-widest text-center focus:outline-none focus:ring-2 focus:ring-brand-500"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                <div className="pt-2 flex items-center justify-between">
+                  <button
+                    type="button"
+                    onClick={() => setKycStep(1)}
+                    className="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 text-xs font-semibold hover:bg-slate-50 transition"
+                  >
+                    Back
+                  </button>
+                  <button
+                    type="button"
+                    disabled={aadhaarVerifying}
+                    onClick={() => {
+                      if (aadhaarInput.length !== 12) {
+                        setKycError('Please enter a 12-digit Aadhaar number.');
+                        return;
+                      }
+                      if (!otpSent || enteredOtp.length !== 6) {
+                        setKycError('Please request and enter the 6-digit Aadhaar OTP.');
+                        return;
+                      }
+                      setAadhaarVerifying(true);
+                      setTimeout(() => {
+                        setAadhaarVerifying(false);
+                        setAadhaarVerified(true);
+                        setKycStep(3);
+                      }, 800);
+                    }}
+                    className="px-5 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs shadow-md shadow-brand-600/20 transition flex items-center space-x-1.5"
+                  >
+                    <span>{aadhaarVerifying ? 'Authenticating UIDAI...' : 'Verify Aadhaar & Proceed to V-KYC'}</span>
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Step 3: Video KYC (V-KYC) Simulation */}
+            {kycStep === 3 && (
+              <div className="space-y-4">
+                <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80">
+                  <span className="text-[10px] uppercase font-bold tracking-wider text-slate-500 block mb-1">RBI Mandated Video KYC Session</span>
+                  <p className="text-xs text-slate-600">Under RBI guidelines, a live face liveness capture and geo-location match is required for Tier 3 full approval.</p>
+                </div>
+
+                {/* Simulated Camera Viewfinder */}
+                <div className="relative rounded-2xl bg-slate-950 overflow-hidden h-52 flex flex-col items-center justify-center p-4 border-2 border-slate-800 text-white">
+                  <div className="absolute top-3 left-3 flex items-center space-x-1.5 bg-black/60 px-2 py-1 rounded-full text-[10px] font-mono">
+                    <span className="w-2 h-2 rounded-full bg-red-500 animate-ping" />
+                    <span>REC: Encrypted 256-Bit</span>
+                  </div>
+                  <div className="absolute top-3 right-3 text-[10px] font-mono text-emerald-400 bg-black/60 px-2 py-1 rounded-full">
+                    GPS: 17.3850 N, 78.4867 E (India)
+                  </div>
+
+                  {vkycScanning ? (
+                    <div className="flex flex-col items-center space-y-2">
+                      <div className="w-16 h-16 rounded-full border-4 border-brand-400 border-t-transparent animate-spin" />
+                      <span className="text-xs font-bold text-brand-300">Scanning Face & Verifying Documents Live...</span>
+                    </div>
+                  ) : vkycSuccess ? (
+                    <div className="flex flex-col items-center space-y-2">
+                      <div className="w-14 h-14 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center border-2 border-emerald-400">
+                        <CheckCircle className="w-8 h-8" />
+                      </div>
+                      <span className="text-xs font-bold text-emerald-300">Facial Liveness & Geo-Match Verified!</span>
+                      <span className="text-[10px] text-slate-400 font-mono">Reference: VKYC-2026-90412</span>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center space-y-2 text-center">
+                      <div className="w-20 h-24 rounded-3xl border-2 border-dashed border-white/40 flex items-center justify-center">
+                        <span className="text-[10px] text-white/60 font-mono">Align Face</span>
+                      </div>
+                      <p className="text-[11px] text-slate-300 max-w-xs">
+                        Click below to initiate the automated camera verification and NSDL-UIDAI photo match.
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                <div className="pt-2 flex items-center justify-between">
+                  <button
+                    type="button"
+                    onClick={() => setKycStep(2)}
+                    className="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 text-xs font-semibold hover:bg-slate-50 transition"
+                  >
+                    Back
+                  </button>
+
+                  {!vkycSuccess ? (
+                    <button
+                      type="button"
+                      disabled={vkycScanning}
+                      onClick={() => {
+                        setVkycScanning(true);
+                        setTimeout(() => {
+                          setVkycScanning(false);
+                          setVkycSuccess(true);
+                        }, 2000);
+                      }}
+                      className="px-5 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs shadow-md shadow-brand-600/20 transition"
+                    >
+                      {vkycScanning ? 'Verifying Live...' : 'Start Liveness & Document Scan'}
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      disabled={kycSubmitting}
+                      onClick={async () => {
+                        setKycSubmitting(true);
+                        setKycError('');
+                        try {
+                          const res = await api.post('/auth/kyc/submit', {
+                            panNumber: panInput,
+                            aadhaarNumber: aadhaarInput,
+                            dateOfBirth: dobInput,
+                            otp: enteredOtp,
+                            vkycReference: 'VKYC-2026-' + Math.floor(10000 + Math.random() * 90000)
+                          });
+                          if (res.data && res.data.success) {
+                            if (refreshUser) await refreshUser();
+                            setShowKycWizard(false);
+                            setShowKycModal(true);
+                          }
+                        } catch (err) {
+                          setKycError(err.response?.data?.message || 'KYC submission failed. Please try again.');
+                        } finally {
+                          setKycSubmitting(false);
+                        }
+                      }}
+                      className="px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md shadow-emerald-600/20 transition flex items-center space-x-1.5"
+                    >
+                      <span>{kycSubmitting ? 'Finalizing Approval...' : 'Complete & Activate Tier 3 Full KYC'}</span>
+                      <CheckCircle className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}

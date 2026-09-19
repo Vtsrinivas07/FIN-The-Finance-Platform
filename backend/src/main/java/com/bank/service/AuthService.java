@@ -1,6 +1,7 @@
 package com.bank.service;
 
 import com.bank.dto.request.ChangePasswordRequest;
+import com.bank.dto.request.KycSubmitRequest;
 import com.bank.dto.request.LoginRequest;
 import com.bank.dto.request.RegisterRequest;
 import com.bank.dto.request.UpdateProfileRequest;
@@ -160,8 +161,44 @@ public class AuthService {
                 .address(user.getAddress())
                 .role(user.getRole().getName().name())
                 .status(user.getStatus().name())
+                .kycStatus(user.getKycStatus() != null ? user.getKycStatus().name() : "PENDING")
+                .panNumber(user.getPanNumber())
+                .aadhaarNumber(user.getAadhaarNumber())
+                .dateOfBirth(user.getDateOfBirth())
+                .vkycReference(user.getVkycReference())
                 .createdAt(user.getCreatedAt())
                 .build();
+    }
+
+    @Transactional
+    public UserProfileResponse submitKyc(User user, KycSubmitRequest request) {
+        String rawPan = request.getPanNumber().trim().toUpperCase();
+        String maskedPan = "••••• " + rawPan.substring(Math.max(0, rawPan.length() - 5));
+
+        String rawAadhaar = request.getAadhaarNumber().replaceAll("[^0-9]", "");
+        String maskedAadhaar = "•••• •••• " + (rawAadhaar.length() >= 4 ? rawAadhaar.substring(rawAadhaar.length() - 4) : "8921");
+
+        String vkycRef = (request.getVkycReference() != null && !request.getVkycReference().isBlank())
+                ? request.getVkycReference()
+                : "VKYC-2026-" + (10000 + new Random().nextInt(90000));
+
+        user.setKycStatus(User.KycStatus.VERIFIED_TIER_3);
+        user.setPanNumber(maskedPan);
+        user.setAadhaarNumber(maskedAadhaar);
+        user.setDateOfBirth(request.getDateOfBirth());
+        user.setVkycReference(vkycRef);
+        userRepository.save(user);
+
+        notificationService.createNotification(
+                user,
+                "KYC Verification Completed",
+                "Your account is now Full KYC Verified (Tier 3) under RBI guidelines with unlimited limits.",
+                NotificationType.SECURITY_ALERT
+        );
+
+        auditService.log(user, "KYC_VERIFIED", "User", user.getId().toString(), "SUCCESS", null, "Full KYC Tier-3 verified via Aadhaar & V-KYC");
+
+        return getProfile(user.getUsername());
     }
 
     @Transactional

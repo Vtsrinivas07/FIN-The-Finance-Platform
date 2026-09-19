@@ -19,5 +19,10 @@ public class UserProfileResponse {
     private String address;
     private String role;
     private String status;
+    private String kycStatus;
+    private String panNumber;
+    private String aadhaarNumber;
+    private String dateOfBirth;
+    private String vkycReference;
     private LocalDateTime createdAt;
 }

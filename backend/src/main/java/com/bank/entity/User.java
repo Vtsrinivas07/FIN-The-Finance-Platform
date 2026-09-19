@@ -61,6 +61,28 @@ public class User {
         this.updatedAt = LocalDateTime.now();
     }
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "kyc_status", length = 30)
+    @Builder.Default
+    private KycStatus kycStatus = KycStatus.PENDING;
+
+    @Column(name = "pan_number", length = 20)
+    private String panNumber;
+
+    @Column(name = "aadhaar_number", length = 20)
+    private String aadhaarNumber;
+
+    @Column(name = "date_of_birth", length = 20)
+    private String dateOfBirth;
+
+    @Column(name = "vkyc_reference", length = 50)
+    private String vkycReference;
+
+    public enum KycStatus {
+        PENDING,
+        VERIFIED_TIER_3
+    }
+
     public enum UserStatus {
         ACTIVE,
         SUSPENDED,

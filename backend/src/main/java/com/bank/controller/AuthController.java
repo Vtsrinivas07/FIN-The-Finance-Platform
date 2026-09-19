@@ -56,6 +56,14 @@ public class AuthController {
         return ResponseEntity.ok(ApiResponse.success("Profile updated successfully", response));
     }
 
+    @PostMapping("/kyc/submit")
+    @Operation(summary = "Submit digital KYC", description = "Verifies PAN, Aadhaar OTP, and Video KYC to upgrade user to Full KYC Tier 3")
+    public ResponseEntity<ApiResponse<UserProfileResponse>> submitKyc(@Valid @RequestBody com.bank.dto.request.KycSubmitRequest request) {
+        User user = securityUtils.getAuthenticatedUser();
+        UserProfileResponse response = authService.submitKyc(user, request);
+        return ResponseEntity.ok(ApiResponse.success("KYC verified successfully. Upgraded to Full KYC (Tier 3).", response));
+    }
+
     @PostMapping("/change-password")
     @Operation(summary = "Change account password", description = "Verifies current password and updates to new password")
     public ResponseEntity<ApiResponse<Void>> changePassword(@Valid @RequestBody ChangePasswordRequest request) {

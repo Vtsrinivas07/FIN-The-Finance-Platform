@@ -71,6 +71,11 @@ public class DataInitializationService implements CommandLineRunner {
                     .address("742 Evergreen Terrace, Tech Park")
                     .role(customerRole)
                     .status(User.UserStatus.ACTIVE)
+                    .kycStatus(User.KycStatus.VERIFIED_TIER_3)
+                    .panNumber("••••• 1234F")
+                    .aadhaarNumber("•••• •••• 8921")
+                    .dateOfBirth("1995-08-15")
+                    .vkycReference("VKYC-2026-90412")
                     .build();
             demoUser = userRepository.save(demoUser);
 
@@ -114,6 +119,11 @@ public class DataInitializationService implements CommandLineRunner {
                     .address("104 Baker Street")
                     .role(customerRole)
                     .status(User.UserStatus.ACTIVE)
+                    .kycStatus(User.KycStatus.VERIFIED_TIER_3)
+                    .panNumber("••••• 5678J")
+                    .aadhaarNumber("•••• •••• 4410")
+                    .dateOfBirth("1996-03-22")
+                    .vkycReference("VKYC-2026-81204")
                     .build();
             sarah = userRepository.save(sarah);
 
