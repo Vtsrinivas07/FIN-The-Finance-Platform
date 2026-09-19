@@ -41,12 +41,12 @@ const Sidebar = ({ isOpen, onClose }) => {
   ];
 
   const adminNavItems = [
-    { name: 'Operations Hub', path: '/admin', icon: LayoutDashboard },
-    { name: 'Direct CIF Lookup', path: '/admin?tab=users', icon: KeyRound },
-    { name: 'Clearing & AML Inquiry', path: '/admin?tab=transactions', icon: ArrowLeftRight },
-    { name: 'Security & Audit Trail', path: '/admin?tab=audit', icon: ShieldAlert },
+    { name: 'Overview', path: '/admin', icon: LayoutDashboard },
+    { name: 'Customer Search', path: '/admin?tab=users', icon: KeyRound },
+    { name: 'Transaction Search', path: '/admin?tab=transactions', icon: ArrowLeftRight },
+    { name: 'Audit Logs', path: '/admin?tab=audit', icon: ShieldAlert },
     { name: 'KYC Approvals', path: '/admin?tab=kyc', icon: ShieldCheck },
-    { name: 'System Settings', path: '/settings', icon: Settings },
+    { name: 'Settings', path: '/settings', icon: Settings },
   ];
 
   const navItems = isAdmin ? adminNavItems : customerNavItems;

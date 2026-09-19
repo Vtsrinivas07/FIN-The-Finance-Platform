@@ -39,17 +39,17 @@ import {
 } from 'lucide-react';
 
 const CIF_AUTH_OPTIONS = [
-  { value: 'ACCOUNT_NUMBER', label: 'Account Number (CBS)' },
-  { value: 'CIF_USERNAME', label: 'Customer CIF / Username' },
-  { value: 'MOBILE', label: 'Registered Mobile Number' },
-  { value: 'PAN_TAX_ID', label: 'PAN / Tax ID' },
-  { value: 'EMAIL', label: 'Registered Email' }
+  { value: 'ACCOUNT_NUMBER', label: 'Account Number' },
+  { value: 'CIF_USERNAME', label: 'Username' },
+  { value: 'MOBILE', label: 'Phone Number' },
+  { value: 'PAN_TAX_ID', label: 'PAN Card' },
+  { value: 'EMAIL', label: 'Email Address' }
 ];
 
 const TX_SEARCH_OPTIONS = [
-  { value: 'REFERENCE_NUMBER', label: 'Transaction Reference (UTR / RRN)' },
-  { value: 'ACCOUNT_NUMBER', label: 'Customer Account Number' },
-  { value: 'CIF_USERNAME', label: 'Customer CIF / Username' }
+  { value: 'REFERENCE_NUMBER', label: 'Reference Number (UTR)' },
+  { value: 'ACCOUNT_NUMBER', label: 'Account Number' },
+  { value: 'CIF_USERNAME', label: 'Username' }
 ];
 
 const CustomSelect = ({ value, onChange, options, className = '' }) => {
@@ -278,7 +278,7 @@ const AdminDashboard = () => {
       const res = await api.post('/admin/customer-inquiry', {
         authType: cifAuthType,
         identifier: cifQuery.trim(),
-        reason: 'Administrative Inquiry & Verification'
+        reason: 'Customer Account Search'
       });
 
       if (res.data?.success) {
@@ -289,7 +289,7 @@ const AdminDashboard = () => {
         setCustomerDossier(null);
       }
     } catch (err) {
-      const msg = err.response?.data?.message || `No customer found matching ${getAuthTypeLabel(cifAuthType)} "${cifQuery}". Please verify identifier.`;
+      const msg = err.response?.data?.message || `No customer found matching ${getAuthTypeLabel(cifAuthType)} "${cifQuery}". Please check details and try again.`;
       setCifError(msg);
       setCustomerDossier(null);
     } finally {
@@ -309,7 +309,7 @@ const AdminDashboard = () => {
       const res = await api.post('/admin/transaction-inquiry', {
         searchType: txSearchType,
         identifier: txQuery.trim(),
-        reason: 'Clearing & AML Verification'
+        reason: 'Transaction Search'
       });
 
       if (res.data?.success) {
@@ -350,40 +350,40 @@ const AdminDashboard = () => {
   // Helper Labels
   const getAuthTypeLabel = (type) => {
     switch (type) {
-      case 'ACCOUNT_NUMBER': return 'Account Number (10/12-Digit CBS)';
-      case 'CIF_USERNAME': return 'Customer CIF / User ID';
-      case 'MOBILE': return 'Registered Mobile Number';
-      case 'PAN_TAX_ID': return 'PAN / Government Tax ID';
-      case 'EMAIL': return 'Registered Email Address';
-      default: return 'Customer Identifier';
+      case 'ACCOUNT_NUMBER': return 'Account Number';
+      case 'CIF_USERNAME': return 'Username';
+      case 'MOBILE': return 'Phone Number';
+      case 'PAN_TAX_ID': return 'PAN Card';
+      case 'EMAIL': return 'Email Address';
+      default: return 'Search Query';
     }
   };
 
   const getCifPlaceholder = (type) => {
     switch (type) {
-      case 'ACCOUNT_NUMBER': return 'Enter 10 or 12-digit Account Number (e.g. 100123456789)...';
-      case 'CIF_USERNAME': return 'Enter Username or CIF (e.g. john or CIF-1002)...';
-      case 'MOBILE': return 'Enter 10-digit Mobile Number (e.g. 9876543210)...';
-      case 'PAN_TAX_ID': return 'Enter 10-char PAN (e.g. ABCDE1234F)...';
-      case 'EMAIL': return 'Enter registered Email (e.g. customer@bank.com)...';
-      default: return 'Enter customer identification value...';
+      case 'ACCOUNT_NUMBER': return 'Enter 10 or 12-digit account number...';
+      case 'CIF_USERNAME': return 'Enter customer username (e.g. john)...';
+      case 'MOBILE': return 'Enter 10-digit mobile phone number...';
+      case 'PAN_TAX_ID': return 'Enter 10-character PAN (e.g. ABCDE1234F)...';
+      case 'EMAIL': return 'Enter customer email (e.g. customer@bank.com)...';
+      default: return 'Enter search value...';
     }
   };
 
   const getTxSearchTypeLabel = (type) => {
     switch (type) {
-      case 'REFERENCE_NUMBER': return 'Transaction Reference (UTR / RRN)';
-      case 'ACCOUNT_NUMBER': return 'Customer Account Number';
-      case 'CIF_USERNAME': return 'Customer CIF / Username';
+      case 'REFERENCE_NUMBER': return 'Reference Number (UTR)';
+      case 'ACCOUNT_NUMBER': return 'Account Number';
+      case 'CIF_USERNAME': return 'Customer Username';
       default: return 'Search Type';
     }
   };
 
   const getTxPlaceholder = (type) => {
     switch (type) {
-      case 'REFERENCE_NUMBER': return 'Enter UTR / Ref (e.g. UPI1789745116898 or TXN-...)...';
-      case 'ACCOUNT_NUMBER': return 'Enter Account Number (e.g. 100123456789)...';
-      case 'CIF_USERNAME': return 'Enter Customer Username (e.g. john)...';
+      case 'REFERENCE_NUMBER': return 'Enter reference number (UTR)...';
+      case 'ACCOUNT_NUMBER': return 'Enter account number (e.g. 100123456789)...';
+      case 'CIF_USERNAME': return 'Enter customer username...';
       default: return 'Enter search reference...';
     }
   };
@@ -406,10 +406,10 @@ const AdminDashboard = () => {
         <div>
           <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight flex items-center space-x-2">
             <ShieldAlert className="w-6 h-6 text-brand-600" />
-            <span>FIN Bank Operations & Clearing Hub</span>
+            <span>Bank Operations Dashboard</span>
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
-            Core Banking Infrastructure, Direct Customer CIF Lookup, AML Clearing Audit, and Compliance Trail
+            Live overview of customer accounts, transactions, and system security
           </p>
         </div>
         <div className="flex items-center space-x-3">
@@ -425,39 +425,39 @@ const AdminDashboard = () => {
             className="flex items-center space-x-1.5 px-3.5 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold shadow-xs transition cursor-pointer"
           >
             <RotateCcw className="w-3.5 h-3.5" />
-            <span>Refresh System Health</span>
+            <span>Refresh Data</span>
           </button>
         </div>
       </div>
 
-      {/* Macro Metrics Row (No individual customer personal data exposed) */}
+      {/* Macro Metrics Row */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="p-5 rounded-3xl bg-white border border-slate-200/80 shadow-xs">
-          <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">Total Registered Customers</span>
+          <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">Total Customers</span>
           <p className="text-2xl font-extrabold text-slate-900 mt-1">{metrics?.totalCustomers || 0}</p>
-          <span className="text-[10px] text-brand-600 font-semibold mt-1 inline-block">KYC Registered Profiles</span>
+          <span className="text-[10px] text-brand-600 font-semibold mt-1 inline-block">Registered Users</span>
         </div>
 
         <div className="p-5 rounded-3xl bg-white border border-slate-200/80 shadow-xs">
-          <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">Active CBS Accounts</span>
+          <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">Active Accounts</span>
           <p className="text-2xl font-extrabold text-slate-900 mt-1">{metrics?.activeAccounts || 0}</p>
-          <span className="text-[10px] text-emerald-600 font-semibold mt-1 inline-block">Operational Ledgers</span>
+          <span className="text-[10px] text-emerald-600 font-semibold mt-1 inline-block">Open Bank Accounts</span>
         </div>
 
         <div className="p-5 rounded-3xl bg-white border border-slate-200/80 shadow-xs">
-          <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">Settlements Today</span>
+          <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">Transactions Today</span>
           <p className="text-2xl font-extrabold text-slate-900 mt-1">{metrics?.transactionsToday || 0}</p>
           <span className="text-[10px] text-slate-500 mt-1 inline-block">
-            {metrics?.successfulTransactions} Cleared • {metrics?.failedTransactions} Reversals
+            {metrics?.successfulTransactions} Successful • {metrics?.failedTransactions} Failed
           </span>
         </div>
 
         <div className="p-5 rounded-3xl bg-white border border-slate-200/80 shadow-xs">
-          <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">Platform Turnover</span>
+          <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">Total Money Transferred</span>
           <p className="text-2xl font-extrabold text-slate-900 mt-1">
             ₹{parseFloat(metrics?.totalTransactionVolume || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}
           </p>
-          <span className="text-[10px] text-brand-600 font-semibold mt-1 inline-block">Aggregate Clearing Volume</span>
+          <span className="text-[10px] text-brand-600 font-semibold mt-1 inline-block">All-Time Platform Volume</span>
         </div>
       </div>
 
@@ -469,7 +469,7 @@ const AdminDashboard = () => {
             activeTab === 'overview' ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-100'
           }`}
         >
-          Operations Hub
+          Overview
         </button>
         <button
           onClick={() => { setActiveTab('users'); setSearchParams({ tab: 'users' }); }}
@@ -478,7 +478,7 @@ const AdminDashboard = () => {
           }`}
         >
           <KeyRound className="w-3.5 h-3.5" />
-          <span>Direct CIF Lookup {customerDossier && '(1 Active Dossier)'}</span>
+          <span>Customer Search {customerDossier && '(1 Selected)'}</span>
         </button>
         <button
           onClick={() => { setActiveTab('transactions'); setSearchParams({ tab: 'transactions' }); }}
@@ -487,7 +487,7 @@ const AdminDashboard = () => {
           }`}
         >
           <Search className="w-3.5 h-3.5" />
-          <span>Clearing & AML Inquiry {searchedTransactions && `(${searchedTransactions.length} Found)`}</span>
+          <span>Transaction Search {searchedTransactions && `(${searchedTransactions.length} Found)`}</span>
         </button>
         <button
           onClick={() => { setActiveTab('audit'); setSearchParams({ tab: 'audit' }); }}
@@ -496,15 +496,15 @@ const AdminDashboard = () => {
           }`}
         >
           <Fingerprint className="w-3.5 h-3.5" />
-          <span>Security & Audit Trail ({auditLogs.length})</span>
+          <span>Audit Logs ({auditLogs.length})</span>
         </button>
         <button
           onClick={() => { setActiveTab('kyc'); setSearchParams({ tab: 'kyc' }); loadKycRequests(); }}
           className={`px-4 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap flex items-center space-x-1.5 ${
-            activeTab === 'kyc' ? 'bg-orange-600 text-white' : 'text-slate-600 hover:bg-slate-100'
+            activeTab === 'kyc' ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-100'
           }`}
         >
-          <ShieldCheck className="w-3.5 h-3.5" />
+          <ShieldCheck className="w-3.5 h-3.5 text-orange-500" />
           <span>KYC Approvals</span>
           {metrics?.pendingKycCount > 0 && (
             <span className="px-1.5 py-0.5 rounded-full bg-orange-500 text-white text-[9px] font-extrabold">
@@ -515,74 +515,75 @@ const AdminDashboard = () => {
       </div>
 
       {/* ======================================================== */}
-      {/* TAB 0: OPERATIONS HUB (Macro Status & Fast Auth Terminal) */}
+      {/* ======================================================== */}
+      {/* TAB 0: OVERVIEW (Macro Status & Quick Launcher) */}
       {/* ======================================================== */}
       {activeTab === 'overview' && (
         <div className="space-y-6">
-          {/* Core Banking Infrastructure Status */}
+          {/* Payment Systems Status */}
           <div className="p-6 rounded-3xl bg-white border border-slate-200/80 shadow-xs">
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h3 className="text-sm font-extrabold text-slate-900 flex items-center space-x-2">
                   <Server className="w-4 h-4 text-brand-600" />
-                  <span>Core Banking Infrastructure & Clearing Switches</span>
+                  <span>Payment Systems & Network Status</span>
                 </h3>
-                <p className="text-xs text-slate-400 mt-0.5">Real-time inter-bank settlement nodes & clearing gateway availability</p>
+                <p className="text-xs text-slate-400 mt-0.5">Live status of bank transfer systems and gateways</p>
               </div>
               <span className="px-3 py-1 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-600 border border-emerald-200/80 flex items-center space-x-1">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                <span>All Switches Operational</span>
+                <span>All Systems Operational</span>
               </span>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/70">
-                <span className="text-[10px] uppercase font-bold text-slate-400 block">NPCI UPI 2.0 Switch</span>
+                <span className="text-[10px] uppercase font-bold text-slate-400 block">UPI Payments</span>
                 <p className="text-sm font-bold text-slate-900 mt-0.5 flex items-center text-emerald-600">
                   <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> Connected
                 </p>
-                <span className="text-[10px] text-slate-400 block mt-1">Avg latency: 24ms</span>
+                <span className="text-[10px] text-slate-400 block mt-1">Average speed: 24ms</span>
               </div>
 
               <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/70">
-                <span className="text-[10px] uppercase font-bold text-slate-400 block">RBI NEFT / RTGS Clearing</span>
+                <span className="text-[10px] uppercase font-bold text-slate-400 block">NEFT & RTGS Transfers</span>
                 <p className="text-sm font-bold text-slate-900 mt-0.5 flex items-center text-emerald-600">
-                  <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> Cycle Active
+                  <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> Active
                 </p>
-                <span className="text-[10px] text-slate-400 block mt-1">24x7 Real-Time Settlement</span>
+                <span className="text-[10px] text-slate-400 block mt-1">24x7 Real-Time Processing</span>
               </div>
 
               <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/70">
-                <span className="text-[10px] uppercase font-bold text-slate-400 block">IMPS Fast Switch</span>
+                <span className="text-[10px] uppercase font-bold text-slate-400 block">IMPS Fast Transfers</span>
                 <p className="text-sm font-bold text-slate-900 mt-0.5 flex items-center text-emerald-600">
                   <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> Online
                 </p>
-                <span className="text-[10px] text-slate-400 block mt-1">Primary Node Connected</span>
+                <span className="text-[10px] text-slate-400 block mt-1">Instant Settlement</span>
               </div>
 
               <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/70">
-                <span className="text-[10px] uppercase font-bold text-slate-400 block">CBS Ledger Integrity</span>
+                <span className="text-[10px] uppercase font-bold text-slate-400 block">Account Ledger Status</span>
                 <p className="text-sm font-bold text-slate-900 mt-0.5 flex items-center text-emerald-600">
                   <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> Synchronized
                 </p>
-                <span className="text-[10px] text-slate-400 block mt-1">Zero Ledger Drift</span>
+                <span className="text-[10px] text-slate-400 block mt-1">100% Balanced</span>
               </div>
             </div>
           </div>
 
-          {/* Financial Products Portfolio & Underwriting Health */}
+          {/* Deposits & Loans Summary */}
           <div className="p-6 rounded-3xl bg-white border border-slate-200/80 shadow-xs">
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h3 className="text-sm font-extrabold text-slate-900 flex items-center space-x-2">
                   <Activity className="w-4 h-4 text-brand-600" />
-                  <span>Financial Products, Deposits & Credit Portfolio</span>
+                  <span>Deposits & Loans Overview</span>
                 </h3>
-                <p className="text-xs text-slate-400 mt-0.5">Aggregate retail liability and asset portfolios across customer base</p>
+                <p className="text-xs text-slate-400 mt-0.5">Total customer savings deposits and loan balances</p>
               </div>
               <span className="px-3 py-1 rounded-full text-[10px] font-bold bg-brand-50 text-brand-700 border border-brand-200 flex items-center space-x-1">
                 <ShieldCheck className="w-3 h-3 text-brand-600" />
-                <span>Portfolio Healthy</span>
+                <span>Healthy</span>
               </span>
             </div>
 
@@ -590,54 +591,54 @@ const AdminDashboard = () => {
               <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/70">
                 <div className="flex items-center space-x-2 text-slate-500 mb-1">
                   <PiggyBank className="w-3.5 h-3.5 text-amber-500" />
-                  <span className="text-[10px] uppercase font-bold text-slate-400">Fixed Deposit Liabilities</span>
+                  <span className="text-[10px] uppercase font-bold text-slate-400">Total Fixed Deposits</span>
                 </div>
                 <p className="text-base font-extrabold text-slate-900">₹2,45,80,000</p>
-                <span className="text-[10px] text-amber-600 font-semibold block mt-1">7.25% Weighted Avg • DICGC Backed</span>
+                <span className="text-[10px] text-amber-600 font-semibold block mt-1">7.25% Average Return</span>
               </div>
 
               <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/70">
                 <div className="flex items-center space-x-2 text-slate-500 mb-1">
                   <Zap className="w-3.5 h-3.5 text-indigo-500" />
-                  <span className="text-[10px] uppercase font-bold text-slate-400">Digital Loans Disbursed</span>
+                  <span className="text-[10px] uppercase font-bold text-slate-400">Total Loans Disbursed</span>
                 </div>
                 <p className="text-base font-extrabold text-slate-900">₹1,82,40,000</p>
-                <span className="text-[10px] text-indigo-600 font-semibold block mt-1">10.49% Weighted APR • 0.4% Gross NPA</span>
+                <span className="text-[10px] text-indigo-600 font-semibold block mt-1">10.49% Average Interest</span>
               </div>
 
               <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/70">
                 <div className="flex items-center space-x-2 text-slate-500 mb-1">
                   <Award className="w-3.5 h-3.5 text-emerald-500" />
-                  <span className="text-[10px] uppercase font-bold text-slate-400">CIBIL Underwriting Engine</span>
+                  <span className="text-[10px] uppercase font-bold text-slate-400">Credit Score Check</span>
                 </div>
                 <p className="text-base font-extrabold text-slate-900 flex items-center text-emerald-600">
-                  <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> TransUnion Live
+                  <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> Live Connected
                 </p>
-                <span className="text-[10px] text-slate-400 block mt-1">Avg Customer Score: 762</span>
+                <span className="text-[10px] text-slate-400 block mt-1">Average Score: 762</span>
               </div>
 
               <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/70">
                 <div className="flex items-center space-x-2 text-slate-500 mb-1">
                   <Smartphone className="w-3.5 h-3.5 text-sky-500" />
-                  <span className="text-[10px] uppercase font-bold text-slate-400">UPI Phone / VPA Settlement</span>
+                  <span className="text-[10px] uppercase font-bold text-slate-400">UPI Success Rate</span>
                 </div>
                 <p className="text-base font-extrabold text-slate-900 flex items-center text-emerald-600">
-                  <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> 99.98% Success
+                  <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> 99.98%
                 </p>
-                <span className="text-[10px] text-slate-400 block mt-1">1,420 TPS Peak Capability</span>
+                <span className="text-[10px] text-slate-400 block mt-1">Fast & Reliable</span>
               </div>
             </div>
           </div>
 
-          {/* Direct Customer Authentication & CIF Lookup Access Banner */}
+          {/* Quick Customer Search Banner */}
           <div className="p-6 rounded-3xl bg-gradient-to-r from-brand-50 to-indigo-50/50 border border-brand-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="space-y-1">
               <h3 className="text-base font-extrabold text-slate-900 flex items-center space-x-2">
                 <KeyRound className="w-5 h-5 text-brand-600" />
-                <span>Direct Customer Authentication & CIF Lookup</span>
+                <span>Search Customer Accounts</span>
               </h3>
               <p className="text-xs text-slate-600 max-w-xl leading-relaxed">
-                Universal customer listings are restricted under Section 45E of the RBI Act. Query individual customer dossiers securely via Account Number, CIF, Mobile, PAN, or Email.
+                Quickly look up any customer's profile, balance, and account details using their Account Number, Phone, Email, PAN, or Username.
               </p>
             </div>
             <button
@@ -646,7 +647,7 @@ const AdminDashboard = () => {
               className="px-5 py-2.5 rounded-2xl text-xs font-bold bg-brand-600 hover:bg-brand-700 text-white transition shadow-md shadow-brand-600/20 flex items-center space-x-2 flex-shrink-0 self-start sm:self-auto cursor-pointer"
             >
               <KeyRound className="w-3.5 h-3.5" />
-              <span>Open CIF Terminal</span>
+              <span>Search Customers</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </button>
           </div>
@@ -654,26 +655,26 @@ const AdminDashboard = () => {
       )}
 
       {/* ======================================================== */}
-      {/* TAB 1: CUSTOMER CIF & ACCOUNT INQUIRY (Authentication Gate) */}
+      {/* TAB 1: CUSTOMER SEARCH */}
       {/* ======================================================== */}
       {activeTab === 'users' && (
         <div className="space-y-6">
-          {/* Authentication Terminal Card */}
+          {/* Customer Search Card */}
           <div className="p-6 rounded-3xl bg-white border border-slate-200/80 shadow-xs space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
               <div>
                 <h3 className="text-base font-extrabold text-slate-900 flex items-center space-x-2">
                   <KeyRound className="w-5 h-5 text-brand-600" />
-                  <span>Direct Customer Authentication & CIF Lookup</span>
+                  <span>Customer Search</span>
                 </h3>
                 <p className="text-xs text-slate-500 mt-0.5">
-                  Universal customer listings are restricted under Section 45E of the RBI Act. Authenticate via Account Number, CIF, Mobile, PAN, or Email to retrieve individual records.
+                  Search any customer by Account Number, Username, Phone Number, PAN Card, or Email Address.
                 </p>
               </div>
               <div className="flex items-center space-x-2">
-                <span className="px-3 py-1 rounded-full text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200 flex items-center space-x-1">
-                  <Lock className="w-3 h-3 text-indigo-600 mr-1" />
-                  <span>Section 45E Confidentiality Active</span>
+                <span className="px-3 py-1 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center space-x-1">
+                  <ShieldCheck className="w-3 h-3 text-emerald-600 mr-1" />
+                  <span>Secure Search</span>
                 </span>
               </div>
             </div>
@@ -682,7 +683,7 @@ const AdminDashboard = () => {
             <form onSubmit={handleCustomerInquiry} className="grid grid-cols-1 sm:grid-cols-12 gap-3 pt-1">
               <div className="sm:col-span-4">
                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
-                  Authentication Credential Type
+                  Search By
                 </label>
                 <CustomSelect
                   value={cifAuthType}
@@ -693,7 +694,7 @@ const AdminDashboard = () => {
 
               <div className="sm:col-span-5">
                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
-                  Customer Identifier
+                  Enter Details
                 </label>
                 <div className="relative">
                   <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -713,8 +714,8 @@ const AdminDashboard = () => {
                   disabled={!cifQuery.trim() || cifLoading}
                   className="w-full py-2.5 px-4 rounded-2xl text-xs font-bold bg-brand-600 hover:bg-brand-700 text-white transition disabled:opacity-50 shadow-md shadow-brand-600/20 flex items-center justify-center space-x-1.5 cursor-pointer"
                 >
-                  <KeyRound className="w-3.5 h-3.5" />
-                  <span>{cifLoading ? 'Authenticating...' : 'Authenticate & Retrieve'}</span>
+                  <Search className="w-3.5 h-3.5" />
+                  <span>{cifLoading ? 'Searching...' : 'Search Customer'}</span>
                 </button>
               </div>
             </form>
@@ -727,7 +728,7 @@ const AdminDashboard = () => {
             )}
           </div>
 
-          {/* STATE A: NO CUSTOMER FILE LOADED (Protected Banking Secrecy Gate) */}
+          {/* STATE A: NO CUSTOMER LOADED */}
           {!customerDossier && (
             <div className="p-12 rounded-3xl bg-white border border-slate-200/80 text-center space-y-4">
               <div className="w-16 h-16 rounded-3xl bg-indigo-50 border border-indigo-100 text-indigo-600 flex items-center justify-center mx-auto shadow-inner">
@@ -735,30 +736,30 @@ const AdminDashboard = () => {
               </div>
               <div className="max-w-md mx-auto space-y-1.5">
                 <h4 className="text-base font-extrabold text-slate-900">
-                  Customer Confidentiality & Secrecy Guard Active
+                  Search for a Customer
                 </h4>
                 <p className="text-xs text-slate-500 leading-relaxed">
-                  In compliance with RBI Banking Secrecy Directives and ISO/IEC 27701, unsolicited customer listings are prohibited. Select an Authentication Credential Type above to query an authorized customer dossier.
+                  Use the search bar above to look up any customer's profile, bank accounts, and transaction records.
                 </p>
               </div>
               <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
                 <span className="px-3 py-1 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-600 border border-slate-200">
-                  🔒 Zero Open Directory Exposure
+                  🔒 Private & Secure
                 </span>
                 <span className="px-3 py-1 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-600 border border-slate-200">
-                  📋 100% Immutable Audit Logged
+                  📋 Searches Logged
                 </span>
                 <span className="px-3 py-1 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-600 border border-slate-200">
-                  🛡️ Role-Based Staff Access Enforced
+                  🛡️ Staff Access Only
                 </span>
               </div>
             </div>
           )}
 
-          {/* STATE B: CUSTOMER DOSSIER RETRIEVED */}
+          {/* STATE B: CUSTOMER RETRIEVED */}
           {customerDossier && (
             <div className="space-y-6 animate-in fade-in duration-200">
-              {/* Customer Master Header */}
+              {/* Customer Header */}
               <div className="p-6 rounded-3xl bg-white border border-slate-200/80 shadow-xs space-y-5">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
                   <div className="flex items-center space-x-4">
@@ -777,7 +778,7 @@ const AdminDashboard = () => {
                         </span>
                       </div>
                       <p className="text-xs text-slate-400 font-mono mt-0.5">
-                        CIF: {customerDossier.cifNumber} • @{customerDossier.user?.username} • Role: {customerDossier.user?.role}
+                        Customer ID: {customerDossier.cifNumber} • @{customerDossier.user?.username} • Role: {customerDossier.user?.role}
                       </p>
                     </div>
                   </div>
@@ -792,7 +793,7 @@ const AdminDashboard = () => {
                             : 'text-emerald-600 hover:bg-emerald-50 border-emerald-200'
                         }`}
                       >
-                        {customerDossier.user?.status === 'ACTIVE' ? 'Suspend Account' : 'Activate Account'}
+                        {customerDossier.user?.status === 'ACTIVE' ? 'Block Account' : 'Unblock Account'}
                       </button>
                     )}
                     <button
@@ -803,7 +804,7 @@ const AdminDashboard = () => {
                       }}
                       className="px-3.5 py-2 rounded-xl text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 transition"
                     >
-                      Close Dossier & Clear Memory
+                      Close Profile
                     </button>
                   </div>
                 </div>
@@ -812,63 +813,63 @@ const AdminDashboard = () => {
                 <div className="p-3 rounded-2xl bg-indigo-50/70 border border-indigo-100 flex flex-col sm:flex-row sm:items-center justify-between text-xs gap-2">
                   <div className="flex items-center space-x-2 text-indigo-950 font-medium">
                     <UserCheck className="w-4 h-4 text-indigo-600 flex-shrink-0" />
-                    <span>Inquiry Authorized Via: <strong>{getAuthTypeLabel(customerDossier.authType)}</strong> [{customerDossier.queriedIdentifier}]</span>
+                    <span>Customer found via: <strong>{getAuthTypeLabel(customerDossier.authType)}</strong> ({customerDossier.queriedIdentifier})</span>
                   </div>
                   <span className="text-[11px] text-indigo-700 font-bold bg-white/90 px-3 py-1 rounded-xl border border-indigo-200/60 flex items-center space-x-1.5 shadow-2xs">
                     <ShieldCheck className="w-3.5 h-3.5 text-indigo-600" />
-                    <span>Immutable Audit Logged</span>
+                    <span>Search Logged</span>
                   </span>
                 </div>
 
                 {/* Verified Customer Information Grid */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-1">
                   <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/60">
-                    <span className="text-[10px] font-bold uppercase text-slate-400 block">Registered Mobile</span>
+                    <span className="text-[10px] font-bold uppercase text-slate-400 block">Phone Number</span>
                     <p className="text-xs font-mono font-bold text-slate-900 mt-1">
                       {cifMaskSensitive
                         ? (customerDossier.user?.mobileNumber ? `••••••${customerDossier.user.mobileNumber.slice(-4)}` : 'N/A')
                         : (customerDossier.user?.mobileNumber || 'N/A')}
                     </p>
-                    <span className="text-[10px] text-emerald-600 font-semibold mt-1 inline-block">OTP & SMS Alerts Active</span>
+                    <span className="text-[10px] text-emerald-600 font-semibold mt-1 inline-block">Active for SMS & OTP</span>
                   </div>
 
                   <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/60">
-                    <span className="text-[10px] font-bold uppercase text-slate-400 block">Registered Email</span>
+                    <span className="text-[10px] font-bold uppercase text-slate-400 block">Email Address</span>
                     <p className="text-xs font-mono font-bold text-slate-900 mt-1 truncate">
                       {cifMaskSensitive
                         ? (customerDossier.user?.email ? `${customerDossier.user.email.slice(0, 2)}••••@bank.com` : 'N/A')
                         : (customerDossier.user?.email || 'N/A')}
                     </p>
-                    <span className="text-[10px] text-brand-600 font-semibold mt-1 inline-block">e-Statements Enabled</span>
+                    <span className="text-[10px] text-brand-600 font-semibold mt-1 inline-block">Statements Enabled</span>
                   </div>
 
                   <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/60">
-                    <span className="text-[10px] font-bold uppercase text-slate-400 block">KYC Compliance Tier</span>
+                    <span className="text-[10px] font-bold uppercase text-slate-400 block">KYC Status</span>
                     <p className="text-xs font-bold text-slate-900 mt-1 flex items-center text-emerald-600">
-                      <CheckCircle className="w-3.5 h-3.5 mr-1" /> Tier 3 - Biometric Verified
+                      <CheckCircle className="w-3.5 h-3.5 mr-1" /> Verified
                     </p>
                     <span className="text-[10px] text-slate-400 mt-1 inline-block">Aadhaar & PAN Linked</span>
                   </div>
 
                   <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/60">
-                    <span className="text-[10px] font-bold uppercase text-slate-400 block">Account Registration Date</span>
+                    <span className="text-[10px] font-bold uppercase text-slate-400 block">Joined On</span>
                     <p className="text-xs font-mono font-bold text-slate-900 mt-1">
                       {new Date(customerDossier.user?.createdAt).toLocaleDateString('en-IN', { dateStyle: 'medium' })}
                     </p>
-                    <span className="text-[10px] text-slate-400 mt-1 inline-block">Home Branch: FINB0001024</span>
+                    <span className="text-[10px] text-slate-400 mt-1 inline-block">Branch: Head Office</span>
                   </div>
                 </div>
               </div>
 
-              {/* Verified CBS Accounts & Balances */}
+              {/* Customer Accounts & Balances */}
               <div className="p-6 rounded-3xl bg-white border border-slate-200/80 shadow-xs space-y-4">
                 <div className="flex items-center justify-between">
                   <div>
                     <h4 className="text-sm font-extrabold text-slate-900 flex items-center space-x-2">
                       <CreditCard className="w-4 h-4 text-brand-600" />
-                      <span>Verified CBS Accounts ({customerDossier.accounts?.length || 0})</span>
+                      <span>Bank Accounts ({customerDossier.accounts?.length || 0})</span>
                     </h4>
-                    <p className="text-xs text-slate-400 mt-0.5">Core banking deposit ledgers mapped to this customer CIF</p>
+                    <p className="text-xs text-slate-400 mt-0.5">Savings and current accounts belonging to this customer</p>
                   </div>
                   <button
                     type="button"
@@ -876,7 +877,7 @@ const AdminDashboard = () => {
                     className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold shadow-2xs transition"
                   >
                     {cifMaskSensitive ? <Eye className="w-3.5 h-3.5 text-slate-500" /> : <EyeOff className="w-3.5 h-3.5 text-slate-500" />}
-                    <span>{cifMaskSensitive ? 'Unmask Balances & Contact' : 'Mask Sensitive Data'}</span>
+                    <span>{cifMaskSensitive ? 'Show Numbers & Balance' : 'Hide Details'}</span>
                   </button>
                 </div>
 
@@ -889,7 +890,7 @@ const AdminDashboard = () => {
                         <span className="text-[10px] text-slate-400 font-mono">IFSC: FINB0001024</span>
                       </div>
                       <div className="text-right">
-                        <span className="text-[10px] uppercase font-bold text-slate-400 block">Ledger Balance</span>
+                        <span className="text-[10px] uppercase font-bold text-slate-400 block">Current Balance</span>
                         <p className="text-base font-mono font-extrabold text-slate-900 mt-0.5">
                           {cifMaskSensitive ? '₹••••••••' : `₹${parseFloat(acc.balance).toFixed(2)}`}
                         </p>
@@ -908,21 +909,21 @@ const AdminDashboard = () => {
                   <div>
                     <h4 className="text-sm font-extrabold text-slate-900 flex items-center space-x-2">
                       <Award className="w-4 h-4 text-emerald-600" />
-                      <span>Credit Bureau Profile & Financial Products Portfolio</span>
+                      <span>Credit Score & Loan Eligibility</span>
                     </h4>
-                    <p className="text-xs text-slate-400 mt-0.5">Underwriting risk assessment, term deposits, and active credit facilities</p>
+                    <p className="text-xs text-slate-400 mt-0.5">Customer's credit rating, active fixed deposits, and pre-approved loans</p>
                   </div>
                   <span className="px-3 py-1 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center space-x-1">
-                    <CheckCircle className="w-3 h-3 text-emerald-600" />
-                    <span>Prime Credit Rating</span>
+                    <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                    <span>Good Standing</span>
                   </span>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  {/* CIBIL Bureau Assessment */}
+                  {/* Credit Score Assessment */}
                   <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/70 space-y-2">
                     <div className="flex items-center justify-between">
-                      <span className="text-[10px] uppercase font-bold text-slate-500">TransUnion CIBIL Score</span>
+                      <span className="text-[10px] uppercase font-bold text-slate-500">Credit Score</span>
                       <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">
                         785 / 900
                       </span>
@@ -931,14 +932,14 @@ const AdminDashboard = () => {
                       785 <span className="text-xs font-semibold text-emerald-600">EXCELLENT</span>
                     </div>
                     <p className="text-[10px] text-slate-500 leading-snug">
-                      Top 10% borrower tier in India. 100% on-time EMI track record (24/24), 22.8% card utilization.
+                      Excellent credit profile with 100% on-time payment track record.
                     </p>
                   </div>
 
                   {/* Booked Fixed Deposits */}
                   <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/70 space-y-2">
                     <div className="flex items-center justify-between">
-                      <span className="text-[10px] uppercase font-bold text-slate-500">Active Fixed Deposits</span>
+                      <span className="text-[10px] uppercase font-bold text-slate-500">Fixed Deposits</span>
                       <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800">
                         1 Deposit
                       </span>
@@ -963,21 +964,21 @@ const AdminDashboard = () => {
                       {cifMaskSensitive ? '₹••••••••' : '₹5,00,000.00'}
                     </div>
                     <p className="text-[10px] text-slate-500 leading-snug">
-                      Pre-approved limit @ 10.49% p.a. • Zero physical documents • Instant 60s disbursal eligible.
+                      Pre-approved limit @ 10.49% p.a. • Instant paperless approval.
                     </p>
                   </div>
                 </div>
               </div>
 
-              {/* Verified Customer Transaction History */}
+              {/* Customer Transaction History */}
               <div className="p-6 rounded-3xl bg-white border border-slate-200/80 shadow-xs space-y-4">
                 <div className="flex items-center justify-between">
                   <div>
                     <h4 className="text-sm font-extrabold text-slate-900 flex items-center space-x-2">
                       <History className="w-4 h-4 text-brand-600" />
-                      <span>Verified Customer Transactions ({customerDossier.transactions?.length || 0})</span>
+                      <span>Recent Transactions ({customerDossier.transactions?.length || 0})</span>
                     </h4>
-                    <p className="text-xs text-slate-400 mt-0.5">Historical ledger entries strictly scoped to this authenticated customer</p>
+                    <p className="text-xs text-slate-400 mt-0.5">All transactions made by this customer</p>
                   </div>
                 </div>
 
@@ -988,10 +989,10 @@ const AdminDashboard = () => {
                     <table className="w-full text-left text-xs">
                       <thead className="bg-slate-50 border-b border-slate-200/80 text-[11px] font-bold uppercase tracking-wider text-slate-400">
                         <tr>
-                          <th className="px-4 py-3">Reference / UTR</th>
+                          <th className="px-4 py-3">Reference (UTR)</th>
                           <th className="px-4 py-3">Account</th>
                           <th className="px-4 py-3">Description</th>
-                          <th className="px-4 py-3">Timestamp</th>
+                          <th className="px-4 py-3">Date & Time</th>
                           <th className="px-4 py-3 text-right">Amount</th>
                           <th className="px-4 py-3 text-center">Status</th>
                         </tr>
@@ -1026,20 +1027,20 @@ const AdminDashboard = () => {
       )}
 
       {/* ======================================================== */}
-      {/* TAB 2: CLEARING & AML INQUIRY (Authentication Gate) */}
+      {/* TAB 2: TRANSACTION SEARCH */}
       {/* ======================================================== */}
       {activeTab === 'transactions' && (
         <div className="space-y-6">
-          {/* Transaction Search Terminal Form */}
+          {/* Transaction Search Card */}
           <div className="p-6 rounded-3xl bg-white border border-slate-200/80 shadow-xs space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
               <div>
                 <h3 className="text-base font-extrabold text-slate-900 flex items-center space-x-2">
                   <Search className="w-5 h-5 text-brand-600" />
-                  <span>Clearing & AML Transaction Inquiry Terminal</span>
+                  <span>Transaction Search</span>
                 </h3>
                 <p className="text-xs text-slate-500 mt-0.5">
-                  Universal transaction feed broadcasting is restricted to maintain financial confidentiality. Enter a transaction reference (UTR) or account number to inspect clearing records.
+                  Search any payment or transfer by Reference Number (UTR), Account Number, or Customer Username.
                 </p>
               </div>
               <div className="flex items-center space-x-3">
@@ -1049,7 +1050,7 @@ const AdminDashboard = () => {
                   className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold shadow-2xs transition"
                 >
                   {txMaskAmounts ? <Eye className="w-3.5 h-3.5 text-slate-500" /> : <EyeOff className="w-3.5 h-3.5 text-slate-500" />}
-                  <span>{txMaskAmounts ? 'Reveal Amounts (Audit)' : 'Mask Amounts (Privacy)'}</span>
+                  <span>{txMaskAmounts ? 'Show Amounts' : 'Hide Amounts'}</span>
                 </button>
               </div>
             </div>
@@ -1058,7 +1059,7 @@ const AdminDashboard = () => {
             <form onSubmit={handleTransactionInquiry} className="grid grid-cols-1 sm:grid-cols-12 gap-3 pt-1">
               <div className="sm:col-span-4">
                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
-                  Search Identifier Rail
+                  Search By
                 </label>
                 <CustomSelect
                   value={txSearchType}
@@ -1069,7 +1070,7 @@ const AdminDashboard = () => {
 
               <div className="sm:col-span-5">
                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
-                  Query Reference Value
+                  Enter Reference or Account
                 </label>
                 <div className="relative">
                   <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -1090,7 +1091,7 @@ const AdminDashboard = () => {
                   className="w-full py-2.5 px-4 rounded-2xl text-xs font-bold bg-brand-600 hover:bg-brand-700 text-white transition disabled:opacity-50 shadow-md shadow-brand-600/20 flex items-center justify-center space-x-1.5 cursor-pointer"
                 >
                   <Search className="w-3.5 h-3.5" />
-                  <span>{txLoading ? 'Searching...' : 'Query Clearing'}</span>
+                  <span>{txLoading ? 'Searching...' : 'Search Transactions'}</span>
                 </button>
               </div>
             </form>
@@ -1103,29 +1104,29 @@ const AdminDashboard = () => {
             )}
           </div>
 
-          {/* STATE A: NO QUERY EXECUTED (Confidentiality Protection Active) */}
+          {/* STATE A: NO QUERY EXECUTED */}
           {searchedTransactions === null && (
             <div className="p-12 rounded-3xl bg-white border border-slate-200/80 text-center space-y-4">
               <div className="w-16 h-16 rounded-3xl bg-indigo-50 border border-indigo-100 text-indigo-600 flex items-center justify-center mx-auto shadow-inner">
-                <Lock className="w-8 h-8 text-indigo-600" />
+                <Search className="w-8 h-8 text-indigo-600" />
               </div>
               <div className="max-w-md mx-auto space-y-1.5">
                 <h4 className="text-base font-extrabold text-slate-900">
-                  Transaction Ledger Confidentiality Active
+                  Search for Transactions
                 </h4>
                 <p className="text-xs text-slate-500 leading-relaxed">
-                  Financial privacy regulations prohibit streaming bulk customer transactions across teller screens. To audit or trace a payment, enter a Transaction Reference (UTR / RRN) or Account Number above.
+                  Enter a Reference Number (UTR), Account Number, or Customer Username above to find transaction records.
                 </p>
               </div>
               <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
                 <span className="px-3 py-1 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-600 border border-slate-200">
-                  ⚡ NPCI UPI / IMPS Switch Trace
+                  ⚡ Fast UPI & IMPS Lookup
                 </span>
                 <span className="px-3 py-1 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-600 border border-slate-200">
-                  🔍 Targeted Ledger Inquiry
+                  🔍 Simple Account Search
                 </span>
                 <span className="px-3 py-1 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-600 border border-slate-200">
-                  ⚖️ Audited Justification Required
+                  🔒 Private & Logged
                 </span>
               </div>
             </div>
@@ -1138,7 +1139,7 @@ const AdminDashboard = () => {
                 <div className="flex items-center space-x-2">
                   <BadgeAlert className="w-4 h-4 text-brand-600" />
                   <span className="text-xs font-bold text-slate-900">
-                    Showing {searchedTransactions.length} transaction records for query "{txQuery}"
+                    Found {searchedTransactions.length} transaction record(s) for "{txQuery}"
                   </span>
                 </div>
                 <button
@@ -1147,27 +1148,27 @@ const AdminDashboard = () => {
                     setTxQuery('');
                     setTxError('');
                   }}
-                  className="text-xs text-slate-500 hover:text-slate-800 underline font-medium"
+                  className="text-xs text-slate-500 hover:text-slate-800 underline font-medium cursor-pointer"
                 >
-                  Clear Inquiry & Reset
+                  Clear Search
                 </button>
               </div>
 
               {searchedTransactions.length === 0 ? (
                 <div className="p-8 text-center text-slate-400 text-xs">
-                  No matching transaction records found in clearing ledger.
+                  No matching transaction records found.
                 </div>
               ) : (
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-xs">
                     <thead className="bg-slate-50 border-b border-slate-200/80 text-[11px] font-bold uppercase tracking-wider text-slate-400">
                       <tr>
-                        <th className="px-6 py-3.5">Reference / UTR</th>
+                        <th className="px-6 py-3.5">Reference (UTR)</th>
                         <th className="px-6 py-3.5">Account</th>
-                        <th className="px-6 py-3.5">Description & Rail</th>
-                        <th className="px-6 py-3.5">Timestamp</th>
+                        <th className="px-6 py-3.5">Description</th>
+                        <th className="px-6 py-3.5">Date & Time</th>
                         <th className="px-6 py-3.5 text-right">Amount</th>
-                        <th className="px-6 py-3.5 text-center">AML & Status</th>
+                        <th className="px-6 py-3.5 text-center">Status</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
@@ -1184,7 +1185,7 @@ const AdminDashboard = () => {
                           </td>
                           <td className="px-6 py-3.5 text-center">
                             <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-600">
-                              CLEARED • {tx.status}
+                              {tx.status}
                             </span>
                           </td>
                         </tr>
@@ -1199,7 +1200,7 @@ const AdminDashboard = () => {
       )}
 
       {/* ======================================================== */}
-      {/* TAB 3: SECURITY & AUDIT TRAIL STREAM */}
+      {/* TAB 3: SECURITY AUDIT LOGS */}
       {/* ======================================================== */}
       {activeTab === 'audit' && (
         <div className="bg-white rounded-3xl border border-slate-200/80 shadow-xs overflow-hidden">
@@ -1207,9 +1208,9 @@ const AdminDashboard = () => {
             <div>
               <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider flex items-center space-x-2">
                 <Fingerprint className="w-4 h-4 text-brand-600" />
-                <span>Regulatory Security & Access Audit Log</span>
+                <span>Security Audit Logs</span>
               </h3>
-              <p className="text-[11px] text-slate-400 mt-0.5">Immutable audit trail of administrator sessions, customer CIF lookups, and transaction queries</p>
+              <p className="text-[11px] text-slate-400 mt-0.5">Record of all administrator sessions, customer searches, and account updates</p>
             </div>
             <div className="flex items-center space-x-3 self-start sm:self-auto">
               <button
@@ -1218,7 +1219,7 @@ const AdminDashboard = () => {
                 className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold shadow-2xs transition cursor-pointer"
               >
                 <RotateCcw className="w-3.5 h-3.5" />
-                <span>Live Refresh</span>
+                <span>Refresh Logs</span>
               </button>
               <span className="text-xs text-slate-400 font-mono">
                 {auditLogs.length} events recorded
@@ -1230,11 +1231,11 @@ const AdminDashboard = () => {
             <table className="w-full text-left text-xs">
               <thead className="bg-slate-50 border-b border-slate-200/80 text-[11px] font-bold uppercase tracking-wider text-slate-400">
                 <tr>
-                  <th className="px-6 py-3.5">Timestamp (IST)</th>
-                  <th className="px-6 py-3.5">Operator</th>
-                  <th className="px-6 py-3.5">Action</th>
-                  <th className="px-6 py-3.5">Entity</th>
-                  <th className="px-6 py-3.5">Audit Details & Justification</th>
+                  <th className="px-6 py-3.5">Date & Time (IST)</th>
+                  <th className="px-6 py-3.5">User / Admin</th>
+                  <th className="px-6 py-3.5">Action Taken</th>
+                  <th className="px-6 py-3.5">Item Affected</th>
+                  <th className="px-6 py-3.5">Details</th>
                   <th className="px-6 py-3.5 text-center">Status</th>
                 </tr>
               </thead>

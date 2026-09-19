@@ -14,9 +14,9 @@ const BottomNav = ({ onOpenSidebar }) => {
   ];
 
   const adminNavs = [
-    { name: 'Operations', path: '/admin', icon: LayoutDashboard },
+    { name: 'Overview', path: '/admin', icon: LayoutDashboard },
     { name: 'Customers', path: '/admin?tab=users', icon: Users },
-    { name: 'Monitor', path: '/admin?tab=transactions', icon: ArrowLeftRight },
+    { name: 'Transactions', path: '/admin?tab=transactions', icon: ArrowLeftRight },
     { name: 'Audit', path: '/admin?tab=audit', icon: ShieldAlert },
   ];
 

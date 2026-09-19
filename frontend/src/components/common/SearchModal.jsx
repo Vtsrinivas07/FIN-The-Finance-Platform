@@ -29,11 +29,11 @@ const CUSTOMER_QUICK_ACTIONS = [
 ];
 
 const ADMIN_QUICK_ACTIONS = [
-  { label: 'Operations Console Overview', path: '/admin', icon: LayoutDashboard, category: 'Operations' },
-  { label: 'Customer CIF & Account Inquiry', path: '/admin?tab=users', icon: Users, category: 'Governance' },
-  { label: 'Clearing & AML Transaction Inquiry', path: '/admin?tab=transactions', icon: ArrowLeftRight, category: 'Ledger Audit' },
-  { label: 'Security & Audit Trail Logs', path: '/admin?tab=audit', icon: ShieldAlert, category: 'Security' },
-  { label: 'System & Security Settings', path: '/settings', icon: Settings, category: 'Configuration' },
+  { label: 'Overview Dashboard', path: '/admin', icon: LayoutDashboard, category: 'Dashboard' },
+  { label: 'Customer Search', path: '/admin?tab=users', icon: Users, category: 'Customers' },
+  { label: 'Transaction Search', path: '/admin?tab=transactions', icon: ArrowLeftRight, category: 'Transactions' },
+  { label: 'Audit Logs', path: '/admin?tab=audit', icon: ShieldAlert, category: 'Security' },
+  { label: 'Admin Settings & Support Desk', path: '/settings', icon: Settings, category: 'Settings' },
 ];
 
 const SearchModal = ({ isOpen, onClose }) => {
