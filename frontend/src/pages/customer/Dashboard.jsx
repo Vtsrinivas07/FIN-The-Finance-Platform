@@ -1699,7 +1699,7 @@ const Dashboard = () => {
                   {!cameraStream && !vkycSuccess && (
                     <div className="absolute inset-0 flex flex-col items-center justify-center text-white space-y-3">
                       <Video className="w-10 h-10 text-slate-400" />
-                      <p className="text-xs text-slate-300 text-center px-6">Click "Start Camera" to begin live Video KYC or "Quick AI Face Match" below</p>
+                      <p className="text-xs text-slate-300 text-center px-6">Click "Start Camera" to begin live Video KYC session</p>
                     </div>
                   )}
 
@@ -1760,42 +1760,23 @@ const Dashboard = () => {
                   </button>
 
                   {!cameraStream && !vkycSuccess && (
-                    <div className="flex items-center space-x-2">
-                      <button
-                        type="button"
-                        onClick={async () => {
-                          setKycError('');
-                          try {
-                            const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
-                            setCameraStream(stream);
-                            if (videoRef.current) videoRef.current.srcObject = stream;
-                          } catch {
-                            setKycError('Camera access unavailable. You can use Quick AI Face Match to proceed.');
-                          }
-                        }}
-                        className="px-4 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs shadow-md shadow-brand-600/20 transition flex items-center space-x-1.5"
-                      >
-                        <Video className="w-4 h-4" />
-                        <span>Start Camera</span>
-                      </button>
-                      <button
-                        type="button"
-                        disabled={vkycScanning}
-                        onClick={() => {
-                          setVkycScanning(true);
-                          setKycError('');
-                          setTimeout(() => {
-                            setVkycScanning(false);
-                            setVkycSuccess(true);
-                          }, 1200);
-                        }}
-                        className="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition flex items-center space-x-1.5"
-                        title="Simulate biometric facial liveness if camera is unavailable"
-                      >
-                        <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-                        <span>{vkycScanning ? 'Verifying Liveness…' : 'Quick AI Face Match'}</span>
-                      </button>
-                    </div>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        setKycError('');
+                        try {
+                          const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
+                          setCameraStream(stream);
+                          if (videoRef.current) videoRef.current.srcObject = stream;
+                        } catch {
+                          setKycError('Camera access denied. Please allow camera permissions in your browser and try again.');
+                        }
+                      }}
+                      className="px-5 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs shadow-md shadow-brand-600/20 transition flex items-center space-x-1.5"
+                    >
+                      <Video className="w-4 h-4" />
+                      <span>Start Camera</span>
+                    </button>
                   )}
 
                   {cameraStream && !vkycSuccess && (
