@@ -35,8 +35,24 @@ import {
   Smartphone,
   ChevronDown,
   Check,
-  ArrowRight
+  ArrowRight,
+  Sparkles,
+  TrendingUp,
+  Clock,
+  Shield
 } from 'lucide-react';
+import {
+  getCreditCardApplications,
+  approveCreditCardApplication,
+  rejectCreditCardApplication,
+  getLoanApplications,
+  approveLoanApplication,
+  rejectLoanApplication,
+  getWealthInsuranceApplications,
+  approveWealthInsuranceApplication,
+  rejectWealthInsuranceApplication,
+  getPendingApplicationsCount
+} from '../../services/approvalService';
 
 const CIF_AUTH_OPTIONS = [
   { value: 'ACCOUNT_NUMBER', label: 'Account Number' },
@@ -185,12 +201,87 @@ const AdminDashboard = () => {
   const [showRejectModal, setShowRejectModal] = useState(null); // user obj
   const [rejectReason, setRejectReason] = useState('');
 
+  // --- Extended Approvals State (Cards, Loans, Wealth & Insurance) ---
+  const [approvalsSubTab, setApprovalsSubTab] = useState('kyc'); // 'kyc' | 'cards' | 'loans' | 'wealth'
+  const [cardApps, setCardApps] = useState(() => getCreditCardApplications());
+  const [loanApps, setLoanApps] = useState(() => getLoanApplications());
+  const [wealthApps, setWealthApps] = useState(() => getWealthInsuranceApplications());
+  const [approvalFeedback, setApprovalFeedback] = useState('');
+
+  const loadAllApprovals = () => {
+    loadKycRequests();
+    setCardApps(getCreditCardApplications());
+    setLoanApps(getLoanApplications());
+    setWealthApps(getWealthInsuranceApplications());
+  };
+
+  useEffect(() => {
+    const handleSync = () => {
+      setCardApps(getCreditCardApplications());
+      setLoanApps(getLoanApplications());
+      setWealthApps(getWealthInsuranceApplications());
+    };
+    window.addEventListener('fin_approvals_updated', handleSync);
+    window.addEventListener('storage', handleSync);
+    return () => {
+      window.removeEventListener('fin_approvals_updated', handleSync);
+      window.removeEventListener('storage', handleSync);
+    };
+  }, []);
+
+  const handleApproveCard = (appId) => {
+    const app = approveCreditCardApplication(appId);
+    setCardApps(getCreditCardApplications());
+    setApprovalFeedback(`Credit card approved for ${app?.userName || 'customer'} with ₹1,50,000 limit!`);
+    setTimeout(() => setApprovalFeedback(''), 4000);
+  };
+
+  const handleRejectCard = (appId) => {
+    rejectCreditCardApplication(appId, 'Annual income criteria not satisfied');
+    setCardApps(getCreditCardApplications());
+    setApprovalFeedback('Credit card application rejected.');
+    setTimeout(() => setApprovalFeedback(''), 4000);
+  };
+
+  const handleApproveLoan = (appId) => {
+    const app = approveLoanApplication(appId);
+    setLoanApps(getLoanApplications());
+    setApprovalFeedback(`Personal Loan approved & disbursed for ${app?.userName || 'customer'}!`);
+    setTimeout(() => setApprovalFeedback(''), 4000);
+  };
+
+  const handleRejectLoan = (appId) => {
+    rejectLoanApplication(appId, 'High debt-to-income ratio');
+    setLoanApps(getLoanApplications());
+    setApprovalFeedback('Loan application rejected.');
+    setTimeout(() => setApprovalFeedback(''), 4000);
+  };
+
+  const handleApproveWealth = (appId) => {
+    const app = approveWealthInsuranceApplication(appId);
+    setWealthApps(getWealthInsuranceApplications());
+    setApprovalFeedback(`Application approved & policy/folio generated: ${app?.folioOrPolicyNumber}!`);
+    setTimeout(() => setApprovalFeedback(''), 4000);
+  };
+
+  const handleRejectWealth = (appId) => {
+    rejectWealthInsuranceApplication(appId, 'Underwriting parameters not matched');
+    setWealthApps(getWealthInsuranceApplications());
+    setApprovalFeedback('Application rejected.');
+    setTimeout(() => setApprovalFeedback(''), 4000);
+  };
+
+  const pendingCardCount = cardApps.filter((c) => c.status === 'PENDING').length;
+  const pendingLoanCount = loanApps.filter((l) => l.status === 'PENDING').length;
+  const pendingWealthCount = wealthApps.filter((w) => w.status === 'PENDING').length;
+  const totalPendingApprovals = (metrics?.pendingKycCount || kycRequests.length) + pendingCardCount + pendingLoanCount + pendingWealthCount;
+
   useEffect(() => {
     const tab = searchParams.get('tab') || 'overview';
     if (['overview', 'users', 'transactions', 'audit', 'kyc'].includes(tab)) {
       setActiveTab(tab);
       if (tab === 'kyc') {
-        loadKycRequests();
+        loadAllApprovals();
       }
     }
   }, [searchParams]);
@@ -499,16 +590,16 @@ const AdminDashboard = () => {
           <span>Audit Logs ({auditLogs.length})</span>
         </button>
         <button
-          onClick={() => { setActiveTab('kyc'); setSearchParams({ tab: 'kyc' }); loadKycRequests(); }}
+          onClick={() => { setActiveTab('kyc'); setSearchParams({ tab: 'kyc' }); loadAllApprovals(); }}
           className={`px-4 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap flex items-center space-x-1.5 ${
             activeTab === 'kyc' ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-100'
           }`}
         >
           <ShieldCheck className="w-3.5 h-3.5 text-orange-500" />
-          <span>KYC Approvals</span>
-          {metrics?.pendingKycCount > 0 && (
+          <span>Approvals Queue</span>
+          {totalPendingApprovals > 0 && (
             <span className="px-1.5 py-0.5 rounded-full bg-orange-500 text-white text-[9px] font-extrabold">
-              {metrics.pendingKycCount}
+              {totalPendingApprovals}
             </span>
           )}
         </button>
@@ -1273,116 +1364,427 @@ const AdminDashboard = () => {
       )}
 
       {/* ============================================ */}
-      {/* TAB 4: KYC APPROVALS                         */}
+      {/* ============================================ */}
+      {/* TAB 4: BANK APPLICATIONS & APPROVALS CENTER  */}
       {/* ============================================ */}
       {activeTab === 'kyc' && (
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
+        <div className="space-y-5">
+          {/* Header */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
               <h3 className="text-sm font-extrabold text-slate-900 flex items-center space-x-2">
                 <ShieldCheck className="w-4 h-4 text-orange-600" />
-                <span>KYC Verification Queue</span>
-                {kycRequests.length > 0 && (
-                  <span className="px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 text-[10px] font-bold">
-                    {kycRequests.length} Pending
-                  </span>
-                )}
+                <span>Bank Applications &amp; Approvals Center</span>
               </h3>
-              <p className="text-xs text-slate-400 mt-0.5">Review and approve or reject customer KYC applications submitted via PAN + Aadhaar + Video KYC</p>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Review and approve or reject customer KYC, Credit Cards, Personal Loans, and Wealth &amp; Insurance applications
+              </p>
             </div>
             <button
-              onClick={loadKycRequests}
-              className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 text-xs font-semibold transition"
+              onClick={loadAllApprovals}
+              className="self-start sm:self-auto flex items-center space-x-1.5 px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 text-xs font-semibold transition cursor-pointer"
             >
               <RotateCcw className="w-3.5 h-3.5" />
-              <span>Refresh</span>
+              <span>Refresh Queue</span>
             </button>
           </div>
 
-          {kycLoading && (
-            <div className="space-y-3">
-              {[1,2,3].map(i => <div key={i} className="h-32 bg-slate-100 rounded-2xl animate-pulse" />)}
+          {approvalFeedback && (
+            <div className="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs flex items-center space-x-2 animate-in fade-in">
+              <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
+              <span className="font-semibold">{approvalFeedback}</span>
             </div>
           )}
 
-          {!kycLoading && kycRequests.length === 0 && (
-            <div className="p-12 rounded-3xl bg-white border border-slate-200/80 shadow-xs flex flex-col items-center text-center space-y-3">
-              <div className="w-14 h-14 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
-                <CheckCircle2 className="w-7 h-7" />
-              </div>
-              <p className="text-sm font-bold text-slate-900">All Clear — No Pending KYC Applications</p>
-              <p className="text-xs text-slate-400 max-w-sm">All submitted KYC documents have been reviewed. New applications will appear here when customers complete the digital KYC wizard.</p>
+          {/* Sub-Tabs Selector */}
+          <div className="flex p-1 bg-slate-100 rounded-2xl self-start overflow-x-auto gap-1">
+            <button
+              type="button"
+              onClick={() => setApprovalsSubTab('kyc')}
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 whitespace-nowrap cursor-pointer ${
+                approvalsSubTab === 'kyc' ? 'bg-white text-slate-900 shadow-xs ring-1 ring-slate-200' : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <ShieldCheck className="w-3.5 h-3.5 text-orange-500" />
+              <span>KYC Verification</span>
+              {kycRequests.length > 0 && (
+                <span className="px-1.5 py-0.5 rounded-full bg-orange-500 text-white text-[9px] font-extrabold">
+                  {kycRequests.length}
+                </span>
+              )}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setApprovalsSubTab('cards')}
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 whitespace-nowrap cursor-pointer ${
+                approvalsSubTab === 'cards' ? 'bg-white text-slate-900 shadow-xs ring-1 ring-slate-200' : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <CreditCard className="w-3.5 h-3.5 text-amber-500" />
+              <span>Credit Cards</span>
+              {pendingCardCount > 0 && (
+                <span className="px-1.5 py-0.5 rounded-full bg-amber-500 text-white text-[9px] font-extrabold">
+                  {pendingCardCount}
+                </span>
+              )}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setApprovalsSubTab('loans')}
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 whitespace-nowrap cursor-pointer ${
+                approvalsSubTab === 'loans' ? 'bg-white text-slate-900 shadow-xs ring-1 ring-slate-200' : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <Zap className="w-3.5 h-3.5 text-indigo-500" />
+              <span>Personal Loans</span>
+              {pendingLoanCount > 0 && (
+                <span className="px-1.5 py-0.5 rounded-full bg-indigo-500 text-white text-[9px] font-extrabold">
+                  {pendingLoanCount}
+                </span>
+              )}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setApprovalsSubTab('wealth')}
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 whitespace-nowrap cursor-pointer ${
+                approvalsSubTab === 'wealth' ? 'bg-white text-slate-900 shadow-xs ring-1 ring-slate-200' : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <TrendingUp className="w-3.5 h-3.5 text-purple-500" />
+              <span>Wealth &amp; Insurance</span>
+              {pendingWealthCount > 0 && (
+                <span className="px-1.5 py-0.5 rounded-full bg-purple-500 text-white text-[9px] font-extrabold">
+                  {pendingWealthCount}
+                </span>
+              )}
+            </button>
+          </div>
+
+          {/* SUB-TAB 1: KYC DOCUMENTS */}
+          {approvalsSubTab === 'kyc' && (
+            <div className="space-y-3">
+              {kycLoading && (
+                <div className="space-y-3">
+                  {[1, 2, 3].map(i => <div key={i} className="h-32 bg-slate-100 rounded-2xl animate-pulse" />)}
+                </div>
+              )}
+
+              {!kycLoading && kycRequests.length === 0 && (
+                <div className="p-12 rounded-3xl bg-white border border-slate-200/80 shadow-xs flex flex-col items-center text-center space-y-3">
+                  <div className="w-14 h-14 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                    <CheckCircle2 className="w-7 h-7" />
+                  </div>
+                  <p className="text-sm font-bold text-slate-900">All Clear — No Pending KYC Applications</p>
+                  <p className="text-xs text-slate-400 max-w-sm">All submitted customer KYC documents have been reviewed.</p>
+                </div>
+              )}
+
+              {!kycLoading && kycRequests.length > 0 && (
+                <div className="space-y-3">
+                  {kycRequests.map(req => (
+                    <div key={req.id} className="p-5 rounded-2xl bg-white border border-orange-200/60 shadow-xs hover:border-orange-300 transition">
+                      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+                        <div className="flex items-start space-x-4">
+                          <div className="w-11 h-11 rounded-xl bg-orange-100 text-orange-700 flex items-center justify-center font-extrabold text-base flex-shrink-0">
+                            {req.fullName?.charAt(0).toUpperCase()}
+                          </div>
+                          <div>
+                            <p className="text-sm font-extrabold text-slate-900">{req.fullName}</p>
+                            <p className="text-xs text-slate-500">{req.email} &bull; +91{req.mobileNumber}</p>
+                            <p className="text-[11px] text-slate-400 mt-0.5">@{req.username}</p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center space-x-2 flex-shrink-0">
+                          <button
+                            disabled={kycActionLoading === req.id}
+                            onClick={() => handleApproveKyc(req.id)}
+                            className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition flex items-center space-x-1.5 disabled:opacity-50 cursor-pointer"
+                          >
+                            <CheckCircle2 className="w-3.5 h-3.5" />
+                            <span>{kycActionLoading === req.id ? 'Processing…' : 'Approve KYC'}</span>
+                          </button>
+                          <button
+                            disabled={kycActionLoading === req.id}
+                            onClick={() => { setShowRejectModal(req); setRejectReason(''); }}
+                            className="px-4 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-bold transition flex items-center space-x-1.5 disabled:opacity-50 cursor-pointer"
+                          >
+                            <XCircle className="w-3.5 h-3.5" />
+                            <span>Reject</span>
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-3 pt-4 border-t border-slate-100">
+                        <div>
+                          <span className="text-[10px] uppercase font-bold text-slate-400 block">PAN Number</span>
+                          <span className="text-xs font-mono font-bold text-slate-800">{req.panNumber || '—'}</span>
+                        </div>
+                        <div>
+                          <span className="text-[10px] uppercase font-bold text-slate-400 block">Aadhaar</span>
+                          <span className="text-xs font-mono font-bold text-slate-800">{req.aadhaarNumber || '—'}</span>
+                        </div>
+                        <div>
+                          <span className="text-[10px] uppercase font-bold text-slate-400 block">Date of Birth</span>
+                          <span className="text-xs font-bold text-slate-800">{req.dateOfBirth || '—'}</span>
+                        </div>
+                        <div>
+                          <span className="text-[10px] uppercase font-bold text-slate-400 block">V-KYC Reference</span>
+                          <span className="text-xs font-mono font-bold text-brand-700">{req.vkycReference || '—'}</span>
+                        </div>
+                      </div>
+
+                      <div className="mt-2 flex items-center space-x-2">
+                        <span className="px-2 py-0.5 rounded-full text-[9px] font-extrabold bg-orange-50 text-orange-700 border border-orange-200 uppercase tracking-wide">
+                          KYC SUBMITTED
+                        </span>
+                        <span className="text-[10px] text-slate-500 font-mono">
+                          Submitted: {req.createdAt ? formatLiveTimestamp(req.createdAt) : 'N/A'}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
-          {!kycLoading && kycRequests.length > 0 && (
+          {/* SUB-TAB 2: CREDIT CARDS */}
+          {approvalsSubTab === 'cards' && (
             <div className="space-y-3">
-              {kycRequests.map(req => (
-                <div key={req.id} className="p-5 rounded-2xl bg-white border border-orange-200/60 shadow-xs hover:border-orange-300 transition">
-                  <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-                    {/* Customer Info */}
-                    <div className="flex items-start space-x-4">
-                      <div className="w-11 h-11 rounded-xl bg-orange-100 text-orange-700 flex items-center justify-center font-extrabold text-base flex-shrink-0">
-                        {req.fullName?.charAt(0).toUpperCase()}
+              {cardApps.length === 0 ? (
+                <div className="p-12 rounded-3xl bg-white border border-slate-200/80 text-center space-y-2">
+                  <CreditCard className="w-10 h-10 text-slate-300 mx-auto" />
+                  <p className="text-sm font-bold text-slate-800">No Credit Card Applications in Queue</p>
+                  <p className="text-xs text-slate-400">Applications submitted by customers will appear here for review.</p>
+                </div>
+              ) : (
+                cardApps.map((app) => (
+                  <div key={app.id} className="p-5 rounded-2xl bg-white border border-slate-200 shadow-xs space-y-3">
+                    <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+                      <div className="flex items-start space-x-3.5">
+                        <div className="w-11 h-11 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center font-bold text-base flex-shrink-0">
+                          <CreditCard className="w-5 h-5" />
+                        </div>
+                        <div>
+                          <div className="flex items-center space-x-2">
+                            <p className="text-sm font-extrabold text-slate-900">{app.userName}</p>
+                            <span className={`px-2 py-0.5 rounded-full text-[9px] font-extrabold border ${
+                              app.status === 'APPROVED' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+                              app.status === 'REJECTED' ? 'bg-rose-50 text-rose-700 border-rose-200' :
+                              'bg-amber-50 text-amber-700 border-amber-200'
+                            }`}>
+                              {app.status === 'APPROVED' ? 'APPROVED & ACTIVE' : app.status === 'REJECTED' ? 'REJECTED' : 'PENDING REVIEW'}
+                            </span>
+                          </div>
+                          <p className="text-xs text-slate-500 mt-0.5">A/C: {app.accountNumber} &bull; +91 {app.phone}</p>
+                          <p className="text-[11px] text-slate-400 font-mono">Ref: {app.id}</p>
+                        </div>
+                      </div>
+
+                      {app.status === 'PENDING' ? (
+                        <div className="flex items-center space-x-2 flex-shrink-0">
+                          <button
+                            onClick={() => handleApproveCard(app.id)}
+                            className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition flex items-center space-x-1.5 cursor-pointer shadow-xs"
+                          >
+                            <Check className="w-3.5 h-3.5" />
+                            <span>Approve Card</span>
+                          </button>
+                          <button
+                            onClick={() => handleRejectCard(app.id)}
+                            className="px-4 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-bold transition flex items-center space-x-1.5 cursor-pointer"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                            <span>Reject</span>
+                          </button>
+                        </div>
+                      ) : (
+                        <span className="text-xs font-semibold text-slate-400">Action Completed</span>
+                      )}
+                    </div>
+
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-3 border-t border-slate-100 text-xs">
+                      <div>
+                        <span className="text-[10px] uppercase font-bold text-slate-400 block">Requested Card</span>
+                        <span className="font-bold text-slate-800">{app.cardName}</span>
                       </div>
                       <div>
-                        <p className="text-sm font-extrabold text-slate-900">{req.fullName}</p>
-                        <p className="text-xs text-slate-500">{req.email} &bull; +91{req.mobileNumber}</p>
-                        <p className="text-[11px] text-slate-400 mt-0.5">@{req.username}</p>
+                        <span className="text-[10px] uppercase font-bold text-slate-400 block">Credit Limit</span>
+                        <span className="font-mono font-bold text-brand-700">₹{Number(app.requestedLimit).toLocaleString('en-IN')}</span>
+                      </div>
+                      <div>
+                        <span className="text-[10px] uppercase font-bold text-slate-400 block">Employment</span>
+                        <span className="font-bold text-slate-800">{app.employmentType}</span>
+                      </div>
+                      <div>
+                        <span className="text-[10px] uppercase font-bold text-slate-400 block">Annual Income</span>
+                        <span className="font-mono font-bold text-slate-800">₹{Number(app.annualIncome).toLocaleString('en-IN')}</span>
                       </div>
                     </div>
-
-                    {/* Action Buttons */}
-                    <div className="flex items-center space-x-2 flex-shrink-0">
-                      <button
-                        disabled={kycActionLoading === req.id}
-                        onClick={() => handleApproveKyc(req.id)}
-                        className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition flex items-center space-x-1.5 disabled:opacity-50"
-                      >
-                        <CheckCircle2 className="w-3.5 h-3.5" />
-                        <span>{kycActionLoading === req.id ? 'Processing…' : 'Approve'}</span>
-                      </button>
-                      <button
-                        disabled={kycActionLoading === req.id}
-                        onClick={() => { setShowRejectModal(req); setRejectReason(''); }}
-                        className="px-4 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-bold transition flex items-center space-x-1.5 disabled:opacity-50"
-                      >
-                        <XCircle className="w-3.5 h-3.5" />
-                        <span>Reject</span>
-                      </button>
-                    </div>
                   </div>
+                ))
+              )}
+            </div>
+          )}
 
-                  {/* KYC Document Details */}
-                  <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-3 pt-4 border-t border-slate-100">
-                    <div>
-                      <span className="text-[10px] uppercase font-bold text-slate-400 block">PAN Number</span>
-                      <span className="text-xs font-mono font-bold text-slate-800">{req.panNumber || '—'}</span>
-                    </div>
-                    <div>
-                      <span className="text-[10px] uppercase font-bold text-slate-400 block">Aadhaar</span>
-                      <span className="text-xs font-mono font-bold text-slate-800">{req.aadhaarNumber || '—'}</span>
-                    </div>
-                    <div>
-                      <span className="text-[10px] uppercase font-bold text-slate-400 block">Date of Birth</span>
-                      <span className="text-xs font-bold text-slate-800">{req.dateOfBirth || '—'}</span>
-                    </div>
-                    <div>
-                      <span className="text-[10px] uppercase font-bold text-slate-400 block">V-KYC Reference</span>
-                      <span className="text-xs font-mono font-bold text-brand-700">{req.vkycReference || '—'}</span>
-                    </div>
-                  </div>
-
-                  <div className="mt-2 flex items-center space-x-2">
-                    <span className="px-2 py-0.5 rounded-full text-[9px] font-extrabold bg-orange-50 text-orange-700 border border-orange-200 uppercase tracking-wide">
-                      KYC SUBMITTED
-                    </span>
-                    <span className="text-[10px] text-slate-500 font-mono">
-                      Submitted: {req.createdAt ? formatLiveTimestamp(req.createdAt) : 'N/A'}
-                    </span>
-                  </div>
+          {/* SUB-TAB 3: PERSONAL LOANS */}
+          {approvalsSubTab === 'loans' && (
+            <div className="space-y-3">
+              {loanApps.length === 0 ? (
+                <div className="p-12 rounded-3xl bg-white border border-slate-200/80 text-center space-y-2">
+                  <Zap className="w-10 h-10 text-slate-300 mx-auto" />
+                  <p className="text-sm font-bold text-slate-800">No Loan Applications in Queue</p>
+                  <p className="text-xs text-slate-400">Customer personal loan requests will appear here for underwriting review.</p>
                 </div>
-              ))}
+              ) : (
+                loanApps.map((app) => (
+                  <div key={app.id} className="p-5 rounded-2xl bg-white border border-slate-200 shadow-xs space-y-3">
+                    <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+                      <div className="flex items-start space-x-3.5">
+                        <div className="w-11 h-11 rounded-xl bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold text-base flex-shrink-0">
+                          <Zap className="w-5 h-5" />
+                        </div>
+                        <div>
+                          <div className="flex items-center space-x-2">
+                            <p className="text-sm font-extrabold text-slate-900">{app.userName}</p>
+                            <span className={`px-2 py-0.5 rounded-full text-[9px] font-extrabold border ${
+                              app.status === 'APPROVED' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+                              app.status === 'REJECTED' ? 'bg-rose-50 text-rose-700 border-rose-200' :
+                              'bg-indigo-50 text-indigo-700 border-indigo-200'
+                            }`}>
+                              {app.status === 'APPROVED' ? 'DISBURSED & ACTIVE' : app.status === 'REJECTED' ? 'REJECTED' : 'PENDING DISBURSAL'}
+                            </span>
+                          </div>
+                          <p className="text-xs text-slate-500 mt-0.5">A/C: {app.accountNumber} &bull; +91 {app.phone}</p>
+                          <p className="text-[11px] text-slate-400 font-mono">Ref: {app.id}</p>
+                        </div>
+                      </div>
+
+                      {app.status === 'PENDING' ? (
+                        <div className="flex items-center space-x-2 flex-shrink-0">
+                          <button
+                            onClick={() => handleApproveLoan(app.id)}
+                            className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition flex items-center space-x-1.5 cursor-pointer shadow-xs"
+                          >
+                            <Zap className="w-3.5 h-3.5" />
+                            <span>Approve &amp; Disburse</span>
+                          </button>
+                          <button
+                            onClick={() => handleRejectLoan(app.id)}
+                            className="px-4 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-bold transition flex items-center space-x-1.5 cursor-pointer"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                            <span>Reject</span>
+                          </button>
+                        </div>
+                      ) : (
+                        <span className="text-xs font-semibold text-slate-400">Action Completed</span>
+                      )}
+                    </div>
+
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-3 border-t border-slate-100 text-xs">
+                      <div>
+                        <span className="text-[10px] uppercase font-bold text-slate-400 block">Loan Principal</span>
+                        <span className="font-mono font-bold text-indigo-700 text-sm">₹{Number(app.amount).toLocaleString('en-IN')}</span>
+                      </div>
+                      <div>
+                        <span className="text-[10px] uppercase font-bold text-slate-400 block">Repayment Tenure</span>
+                        <span className="font-bold text-slate-800">{app.tenureMonths} Months</span>
+                      </div>
+                      <div>
+                        <span className="text-[10px] uppercase font-bold text-slate-400 block">Monthly Installment</span>
+                        <span className="font-mono font-bold text-slate-800">₹{Number(app.emi).toLocaleString('en-IN')}/mo</span>
+                      </div>
+                      <div>
+                        <span className="text-[10px] uppercase font-bold text-slate-400 block">Fixed Interest Rate</span>
+                        <span className="font-mono font-bold text-slate-800">{app.annualRate || 10.49}% p.a.</span>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          )}
+
+          {/* SUB-TAB 4: WEALTH & INSURANCE */}
+          {approvalsSubTab === 'wealth' && (
+            <div className="space-y-3">
+              {wealthApps.length === 0 ? (
+                <div className="p-12 rounded-3xl bg-white border border-slate-200/80 text-center space-y-2">
+                  <TrendingUp className="w-10 h-10 text-slate-300 mx-auto" />
+                  <p className="text-sm font-bold text-slate-800">No Wealth &amp; Insurance Applications</p>
+                  <p className="text-xs text-slate-400">SIP mandates and insurance policy applications will show here for underwriter sign-off.</p>
+                </div>
+              ) : (
+                wealthApps.map((app) => (
+                  <div key={app.id} className="p-5 rounded-2xl bg-white border border-slate-200 shadow-xs space-y-3">
+                    <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+                      <div className="flex items-start space-x-3.5">
+                        <div className="w-11 h-11 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center font-bold text-base flex-shrink-0">
+                          <ShieldCheck className="w-5 h-5" />
+                        </div>
+                        <div>
+                          <div className="flex items-center space-x-2">
+                            <p className="text-sm font-extrabold text-slate-900">{app.userName}</p>
+                            <span className={`px-2 py-0.5 rounded-full text-[9px] font-extrabold border ${
+                              app.status === 'APPROVED' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+                              app.status === 'REJECTED' ? 'bg-rose-50 text-rose-700 border-rose-200' :
+                              'bg-purple-50 text-purple-700 border-purple-200'
+                            }`}>
+                              {app.status === 'APPROVED' ? 'APPROVED & ISSUED' : app.status === 'REJECTED' ? 'REJECTED' : 'PENDING UNDERWRITING'}
+                            </span>
+                          </div>
+                          <p className="text-xs text-slate-500 mt-0.5">A/C: {app.accountNumber} &bull; +91 {app.phone}</p>
+                          <p className="text-[11px] text-slate-400 font-mono">Ref: {app.id}</p>
+                        </div>
+                      </div>
+
+                      {app.status === 'PENDING' ? (
+                        <div className="flex items-center space-x-2 flex-shrink-0">
+                          <button
+                            onClick={() => handleApproveWealth(app.id)}
+                            className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition flex items-center space-x-1.5 cursor-pointer shadow-xs"
+                          >
+                            <Check className="w-3.5 h-3.5" />
+                            <span>Approve &amp; Issue</span>
+                          </button>
+                          <button
+                            onClick={() => handleRejectWealth(app.id)}
+                            className="px-4 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-bold transition flex items-center space-x-1.5 cursor-pointer"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                            <span>Reject</span>
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="text-right">
+                          <span className="text-[10px] text-slate-400 uppercase font-bold block">Folio / Policy No</span>
+                          <span className="font-mono text-xs font-bold text-slate-800">{app.folioOrPolicyNumber}</span>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 pt-3 border-t border-slate-100 text-xs">
+                      <div>
+                        <span className="text-[10px] uppercase font-bold text-slate-400 block">Product</span>
+                        <span className="font-bold text-slate-800">{app.title}</span>
+                      </div>
+                      <div>
+                        <span className="text-[10px] uppercase font-bold text-slate-400 block">Cover / Investment</span>
+                        <span className="font-mono font-bold text-purple-700">{app.cover}</span>
+                      </div>
+                      <div>
+                        <span className="text-[10px] uppercase font-bold text-slate-400 block">Plan Type</span>
+                        <span className="font-bold text-slate-800">{app.productType === 'WEALTH_SIP' ? 'Mutual Fund SIP' : 'Insurance Policy'}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           )}
         </div>

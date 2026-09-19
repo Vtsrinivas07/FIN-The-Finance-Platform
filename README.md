@@ -26,14 +26,15 @@ FIN is an online banking platform that provides a complete, secure, and easy-to-
   - View your virtual Platinum Debit Card.
   - Lock or unlock your card anytime with one click.
   - Turn online shopping, tap-and-pay (NFC), and international usage on or off.
-  - Apply for the FIN Millennia Credit Card with pre-approved limits and rewards.
+  - Apply for the FIN Millennia Credit Card (reviewed and approved by bank staff).
 - **Bill Payments & Mobile Recharge**:
   - Pay electricity, water, gas, broadband, and DTH bills.
   - Recharge prepaid mobile numbers with popular talktime and data packs.
-- **Savings & Loans**:
+- **Savings, Loans & Insurance**:
   - Open Fixed Deposits and calculate your interest earnings.
+  - Apply for instant personal loans (approved and disbursed by bank staff).
+  - Apply for mutual fund SIP investments and family insurance policies.
   - Check your credit score with simple score tips.
-  - Calculate monthly EMI for personal loans.
 - **Digital KYC Verification**:
   - Simple 3-step KYC verification using Aadhaar, PAN, and Video KYC.
   - Required for account holders (18+ only) to unlock money transfers and credit cards.
@@ -45,7 +46,11 @@ FIN is an online banking platform that provides a complete, secure, and easy-to-
 - **Operations Overview**: View total customers, active accounts, daily transfer volume, and system status.
 - **Customer Search**: Search any customer quickly using their Account Number, Phone Number, Email, or Username.
 - **Transaction Search**: Find transfer details using a Reference Number (UTR) or Account Number.
-- **KYC Approvals Queue**: Review pending customer KYC documents and approve or reject them with a helpful note.
+- **Bank Approvals Queue**:
+  - **KYC Verification**: Review pending customer KYC documents and approve or reject them.
+  - **Credit Card Approvals**: Review customer employment, income, and approve credit cards.
+  - **Loan Approvals**: Review personal loan requests and approve direct money disbursals.
+  - **Wealth & Insurance**: Review and issue digital insurance policies and SIP investments.
 - **Security Audit Logs**: Automatically records administrative searches, account updates, and logins.
 - **Customer Support Desk**: Review incoming customer questions and send official bank replies directly.
 
@@ -65,7 +70,7 @@ FIN is an online banking platform that provides a complete, secure, and easy-to-
 1. **Sign Up**: A new user creates an account with their full name, email, phone, and date of birth (must be 18+).
 2. **KYC Verification**: The customer completes their Aadhaar, PAN, and Video KYC submission.
 3. **Admin Review**: Bank staff review and approve the customer's KYC in the Admin Portal.
-4. **Active Banking**: Once approved, the customer can transfer money, pay bills, and apply for a credit card.
+4. **Active Banking & Financial Products**: Once approved, the customer can transfer money and pay bills. When customers apply for credit cards, loans, or insurance, the bank administrator reviews and approves each product before activation.
 
 ---
 

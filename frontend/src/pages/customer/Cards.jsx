@@ -29,8 +29,11 @@ import {
   Fuel,
   TrendingUp,
   UserCheck,
-  ShoppingBag
+  ShoppingBag,
+  Clock,
+  Info
 } from 'lucide-react';
+import { getUserCreditCardApplication, submitCreditCardApplication } from '../../services/approvalService';
 
 const Cards = () => {
   const navigate = useNavigate();
@@ -47,11 +50,21 @@ const Cards = () => {
     if (!user?.id) return false;
     return localStorage.getItem(`fin_credit_card_active_${user.id}`) === 'true';
   });
+  const [creditCardApp, setCreditCardApp] = useState(() => {
+    if (!user?.id) return null;
+    return getUserCreditCardApplication(user.id);
+  });
 
-  useEffect(() => {
+  const checkCreditCardStatus = () => {
     if (user?.id) {
       const isIssued = localStorage.getItem(`fin_credit_card_active_${user.id}`) === 'true';
-      setHasCreditCard(isIssued);
+      const app = getUserCreditCardApplication(user.id);
+      setCreditCardApp(app);
+      if (isIssued || app?.status === 'APPROVED') {
+        setHasCreditCard(true);
+      } else {
+        setHasCreditCard(false);
+      }
       if (user?.fullName) {
         setCreditCard((prev) => ({
           ...prev,
@@ -59,6 +72,17 @@ const Cards = () => {
         }));
       }
     }
+  };
+
+  useEffect(() => {
+    checkCreditCardStatus();
+    const handleUpdate = () => checkCreditCardStatus();
+    window.addEventListener('fin_approvals_updated', handleUpdate);
+    window.addEventListener('storage', handleUpdate);
+    return () => {
+      window.removeEventListener('fin_approvals_updated', handleUpdate);
+      window.removeEventListener('storage', handleUpdate);
+    };
   }, [user?.id, user?.fullName]);
 
   // Credit Card Details
@@ -152,24 +176,25 @@ const Cards = () => {
     }, 700);
 
     setTimeout(() => {
-      setApplyStep(3); // Allocating ₹1,50,000 credit limit & generating card
+      setApplyStep(3); // Forwarding application to Bank Administration for review
     }, 1400);
 
     setTimeout(() => {
-      if (user?.id) {
-        localStorage.setItem(`fin_credit_card_active_${user.id}`, 'true');
-      }
-      setHasCreditCard(true);
-      setCreditCard((prev) => ({
-        ...prev,
-        cardHolder: user?.fullName?.toUpperCase() || 'CARDHOLDER',
-        usedLimit: 0,
-        rewardPoints: 5192
-      }));
+      const newApp = submitCreditCardApplication({
+        userId: user?.id || 'demo-user',
+        userName: user?.fullName || user?.username || 'Customer',
+        accountNumber: card?.accountNumber || user?.accountNumber || '100028491823',
+        phone: user?.mobileNumber || user?.phone || '9876543210',
+        requestedLimit: 150000,
+        employmentType,
+        annualIncome: incomeRange,
+        address: user?.address || 'Registered Residential Address'
+      });
+      setCreditCardApp(newApp);
       setApplying(false);
       setApplyStep(0);
-      setFeedback('Congratulations! Your FIN Millennia Credit Card has been approved and activated with a ₹1,50,000 credit limit.');
-      confetti({ particleCount: 90, spread: 80, origin: { y: 0.6 } });
+      setFeedback('Credit card application submitted! Bank administrator will review and approve your card.');
+      confetti({ particleCount: 70, spread: 60, origin: { y: 0.6 } });
       setTimeout(() => setFeedback(''), 5000);
     }, 2200);
   };
@@ -225,7 +250,13 @@ const Cards = () => {
             }`}
           >
             <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-            <span>{hasCreditCard ? 'Millennia Credit Card' : 'Apply for Credit Card'}</span>
+            <span>
+              {hasCreditCard
+                ? 'Millennia Credit Card'
+                : creditCardApp?.status === 'PENDING'
+                ? 'Card Under Bank Review'
+                : 'Apply for Credit Card'}
+            </span>
           </button>
         </div>
       </div>
@@ -440,9 +471,94 @@ const Cards = () => {
         </div>
       )}
 
-      {/* SCENARIO B: KYC VERIFIED, BUT CREDIT CARD NOT APPLIED YET */}
+      {/* SCENARIO B: KYC VERIFIED, BUT CREDIT CARD NOT APPLIED OR PENDING APPROVAL */}
       {activeTab === 'CREDIT' && isKycVerified && !hasCreditCard && (
-        <div className="space-y-6 animate-in fade-in">
+        creditCardApp?.status === 'PENDING' ? (
+          <div className="bg-white rounded-3xl border border-slate-200/80 shadow-xs p-7 sm:p-9 space-y-6 animate-in fade-in">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-slate-100">
+              <div className="flex items-center space-x-3.5">
+                <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center border border-amber-200/80">
+                  <Clock className="w-6 h-6 animate-spin duration-3000" />
+                </div>
+                <div>
+                  <div className="flex items-center space-x-2">
+                    <h3 className="text-lg font-extrabold text-slate-900">Application Under Bank Review</h3>
+                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-100 text-amber-800 border border-amber-200">
+                      Pending Admin Approval
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Ref: <span className="font-mono font-bold text-slate-800">{creditCardApp.id}</span> • Applied on {new Date(creditCardApp.appliedAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={checkCreditCardStatus}
+                className="self-start sm:self-auto flex items-center space-x-1.5 px-3.5 py-2 rounded-xl border border-slate-200 bg-slate-50 hover:bg-white text-slate-700 text-xs font-bold transition shadow-2xs cursor-pointer"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span>Check Live Status</span>
+              </button>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 p-4 rounded-2xl bg-slate-50 border border-slate-200/80 text-xs">
+              <div>
+                <span className="text-[10px] uppercase font-bold text-slate-400 block">Requested Card</span>
+                <span className="font-bold text-slate-800">{creditCardApp.cardName}</span>
+              </div>
+              <div>
+                <span className="text-[10px] uppercase font-bold text-slate-400 block">Approved Limit</span>
+                <span className="font-mono font-bold text-brand-700">₹{Number(creditCardApp.requestedLimit || 150000).toLocaleString('en-IN')}</span>
+              </div>
+              <div>
+                <span className="text-[10px] uppercase font-bold text-slate-400 block">Employment</span>
+                <span className="font-bold text-slate-800">{creditCardApp.employmentType}</span>
+              </div>
+              <div>
+                <span className="text-[10px] uppercase font-bold text-slate-400 block">Declared Income</span>
+                <span className="font-mono font-bold text-slate-800">₹{Number(creditCardApp.annualIncome || 800000).toLocaleString('en-IN')}/yr</span>
+              </div>
+            </div>
+
+            <div className="p-5 rounded-2xl bg-gradient-to-r from-amber-50/60 to-slate-50 border border-amber-100/80 space-y-3">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700">Approval Workflow</h4>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="p-3 rounded-xl bg-white border border-emerald-200 text-xs flex items-center space-x-2.5">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <div>
+                    <span className="font-bold text-slate-800 block">1. Identity & CIBIL</span>
+                    <span className="text-[10px] text-emerald-600 font-medium">Verified (Score: 785)</span>
+                  </div>
+                </div>
+                <div className="p-3 rounded-xl bg-white border border-amber-300 shadow-xs text-xs flex items-center space-x-2.5 ring-1 ring-amber-400/30">
+                  <span className="w-4 h-4 rounded-full border-2 border-amber-500 border-t-transparent animate-spin shrink-0" />
+                  <div>
+                    <span className="font-bold text-slate-900 block">2. Bank Admin Review</span>
+                    <span className="text-[10px] text-amber-700 font-bold">Awaiting Admin Sign-off</span>
+                  </div>
+                </div>
+                <div className="p-3 rounded-xl bg-white border border-slate-200 opacity-60 text-xs flex items-center space-x-2.5">
+                  <ShieldCheck className="w-4 h-4 text-slate-400 shrink-0" />
+                  <div>
+                    <span className="font-bold text-slate-600 block">3. Card Activation</span>
+                    <span className="text-[10px] text-slate-400">Immediate upon Approval</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-blue-50/70 border border-blue-100 text-xs text-blue-900 flex items-start space-x-3">
+              <Info className="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="font-bold text-blue-950">Bank Administrator Approval Required</p>
+                <p className="text-blue-800/90 mt-0.5 leading-relaxed">
+                  Your credit card application is currently in the bank admin queue. You can log in as Admin to review and approve it. Once approved, your card will become active right here.
+                </p>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-6 animate-in fade-in">
           {/* Header Banner */}
           <div className="p-6 rounded-3xl bg-gradient-to-r from-amber-50 via-orange-50 to-amber-100/60 border border-amber-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="space-y-1">
@@ -671,7 +787,7 @@ const Cards = () => {
                     className="w-full py-3 px-5 rounded-2xl font-bold text-xs bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 transition shadow-lg shadow-amber-500/25 disabled:opacity-50 flex items-center justify-center space-x-2 cursor-pointer"
                   >
                     <Sparkles className="w-4 h-4" />
-                    <span>{applying ? 'Activating Card...' : 'Submit Application & Activate Card'}</span>
+                    <span>{applying ? 'Submitting to Bank Admin...' : 'Submit Application for Bank Approval'}</span>
                     <ArrowRight className="w-4 h-4" />
                   </button>
                 </div>
@@ -679,6 +795,7 @@ const Cards = () => {
             </div>
           </div>
         </div>
+        )
       )}
 
       {/* SCENARIO C: CREDIT CARD ISSUED & ACTIVE */}

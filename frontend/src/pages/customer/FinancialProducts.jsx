@@ -29,14 +29,45 @@ import {
   Lock,
   Flame,
   ArrowUpRight,
-  FileText
+  FileText,
+  RotateCcw
 } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
+import {
+  getUserLoanApplication,
+  submitLoanApplication,
+  getUserWealthInsuranceApplications,
+  submitWealthInsuranceApplication
+} from '../../services/approvalService';
 
 const FinancialProducts = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [account, setAccount] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('ALL'); // 'ALL' | 'CIBIL' | 'DEPOSITS' | 'LOANS' | 'WEALTH' | 'INSURANCE'
+
+  // Loan & Wealth Approval State
+  const [loanApp, setLoanApp] = useState(() => getUserLoanApplication(user?.id));
+  const [userWealthApps, setUserWealthApps] = useState(() => getUserWealthInsuranceApplications(user?.id));
+
+  const refreshApprovalData = () => {
+    if (user?.id) {
+      setLoanApp(getUserLoanApplication(user.id));
+      setUserWealthApps(getUserWealthInsuranceApplications(user.id));
+    }
+  };
+
+  useEffect(() => {
+    refreshApprovalData();
+    const handleUpdate = () => refreshApprovalData();
+    window.addEventListener('fin_approvals_updated', handleUpdate);
+    window.addEventListener('storage', handleUpdate);
+    return () => {
+      window.removeEventListener('fin_approvals_updated', handleUpdate);
+      window.removeEventListener('storage', handleUpdate);
+    };
+  }, [user?.id]);
 
   // Fixed Deposits State
   const [fdAmount, setFdAmount] = useState(50000);
@@ -161,54 +192,76 @@ const FinancialProducts = () => {
     }, 600);
   };
 
-  const handleDisburseLoan = async () => {
+  const handleApplyLoan = () => {
     setLoanProcessing(true);
-    try {
-      const { emi, annualRate } = calculateLoanEmi(loanAmount, loanTenureMonths);
-      const loanAccNumber = `LN-2026-${Math.floor(100000 + Math.random() * 900000)}`;
+    const { emi, annualRate } = calculateLoanEmi(loanAmount, loanTenureMonths);
 
-      const res = await api.post('/accounts/deposit', {
-        amount: parseFloat(loanAmount),
-        paymentMethod: 'LOAN_DISBURSAL',
-        sourceDetail: `Instant Personal Loan Disbursal (Loan A/C ${loanAccNumber})`
+    setTimeout(() => {
+      const newLoan = submitLoanApplication({
+        userId: user?.id || 'demo-user',
+        userName: user?.fullName || user?.username || 'Customer',
+        accountNumber: account?.accountNumber || user?.accountNumber || '100028491823',
+        phone: user?.mobileNumber || user?.phone || '9876543210',
+        amount: loanAmount,
+        tenureMonths: loanTenureMonths,
+        emi,
+        annualRate,
+        purpose: 'Personal & Consumption Credit Line'
       });
-
-      if (res.data?.success) {
-        setLoanSuccessData({
-          loanAccNumber,
-          amount: loanAmount,
-          tenureMonths: loanTenureMonths,
-          emi,
-          annualRate,
-          disbursedAt: new Date().toLocaleTimeString()
-        });
-        loadAccount();
-        confetti({ particleCount: 100, spread: 70, origin: { y: 0.5 } });
-      }
-    } catch (err) {
-      alert(err.response?.data?.message || 'Loan disbursal request failed. Please try again.');
-    } finally {
+      setLoanApp(newLoan);
       setLoanProcessing(false);
-    }
+      setLoanSuccessData({
+        loanAccNumber: newLoan.id,
+        amount: loanAmount,
+        tenureMonths: loanTenureMonths,
+        emi,
+        annualRate,
+        disbursedAt: new Date().toLocaleTimeString(),
+        isPendingApproval: true
+      });
+      confetti({ particleCount: 70, spread: 60, origin: { y: 0.5 } });
+    }, 800);
   };
 
   const handleStartSip = (fund) => {
+    const newApp = submitWealthInsuranceApplication({
+      userId: user?.id || 'demo-user',
+      userName: user?.fullName || user?.username || 'Customer',
+      accountNumber: account?.accountNumber || '100028491823',
+      phone: user?.mobileNumber || user?.phone || '9876543210',
+      productType: 'WEALTH_SIP',
+      title: fund.name,
+      cover: `₹${sipAmount.toLocaleString('en-IN')} / month`,
+      premium: 'Monthly SIP (Direct Plan 0% Commission)'
+    });
     setSipSuccessData({
       fundName: fund.name,
       amount: sipAmount,
       frequency: 'Monthly (5th of each month)',
-      folio: `FIN-MF-${Math.floor(10000000 + Math.random() * 90000000)}`
+      appId: newApp.id,
+      isPendingApproval: true
     });
     setSelectedFund(null);
     confetti({ particleCount: 60, spread: 50, origin: { y: 0.6 } });
   };
 
   const handleApplyInsurance = (policy) => {
+    const newApp = submitWealthInsuranceApplication({
+      userId: user?.id || 'demo-user',
+      userName: user?.fullName || user?.username || 'Customer',
+      accountNumber: account?.accountNumber || '100028491823',
+      phone: user?.mobileNumber || user?.phone || '9876543210',
+      productType: 'INSURANCE',
+      title: policy.name,
+      cover: policy.cover,
+      premium: policy.premium
+    });
     setInsuranceSuccessData({
       policyName: policy.name,
       cover: policy.cover,
       premium: policy.premium,
-      policyNumber: `POL-FIN-${Math.floor(1000000 + Math.random() * 9000000)}`
+      appId: newApp.id,
+      isPendingApproval: true
     });
     setSelectedPolicy(null);
     confetti({ particleCount: 60, spread: 50, origin: { y: 0.6 } });
@@ -592,6 +645,96 @@ const FinancialProducts = () => {
             </div>
           </div>
 
+          {loanApp?.status === 'PENDING' && (
+            <div className="p-6 rounded-3xl bg-amber-50/70 border border-amber-200 text-slate-800 space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 rounded-2xl bg-amber-500 text-white flex items-center justify-center font-bold shadow-xs">
+                    <Clock className="w-5 h-5 animate-spin" />
+                  </div>
+                  <div>
+                    <div className="flex items-center space-x-2">
+                      <h4 className="font-extrabold text-sm text-slate-900">Personal Loan Application Under Review</h4>
+                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-200 text-amber-900 border border-amber-300">
+                        Awaiting Admin Approval
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-600 mt-0.5">
+                      Application Ref: <span className="font-mono font-bold text-slate-900">{loanApp.id}</span> • Applied on {new Date(loanApp.appliedAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={refreshApprovalData}
+                  className="self-start sm:self-auto px-3 py-1.5 rounded-xl bg-white border border-amber-300 hover:bg-amber-100/50 text-xs font-bold text-slate-700 transition flex items-center space-x-1.5 shadow-2xs cursor-pointer"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                  <span>Refresh Status</span>
+                </button>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-4 bg-white/90 rounded-2xl border border-amber-200/80 text-xs">
+                <div>
+                  <span className="text-[10px] uppercase font-bold text-slate-400 block">Requested Amount</span>
+                  <strong className="font-mono text-indigo-700 text-sm">₹{Number(loanApp.amount).toLocaleString('en-IN')}</strong>
+                </div>
+                <div>
+                  <span className="text-[10px] uppercase font-bold text-slate-400 block">Monthly EMI</span>
+                  <strong className="font-mono text-slate-900">₹{Number(loanApp.emi).toLocaleString('en-IN')}/mo</strong>
+                </div>
+                <div>
+                  <span className="text-[10px] uppercase font-bold text-slate-400 block">Tenure</span>
+                  <strong className="text-slate-900">{loanApp.tenureMonths} Months</strong>
+                </div>
+                <div>
+                  <span className="text-[10px] uppercase font-bold text-slate-400 block">Interest Rate</span>
+                  <strong className="text-slate-900 font-mono">10.49% p.a. Fixed</strong>
+                </div>
+              </div>
+              <p className="text-xs text-amber-900/90 leading-relaxed">
+                Bank administrators review loan eligibility and credit score before approving. Once approved in the Admin portal, funds will be disbursed directly into your primary savings account.
+              </p>
+            </div>
+          )}
+
+          {loanApp?.status === 'APPROVED' && (
+            <div className="p-6 rounded-3xl bg-emerald-50/70 border border-emerald-200 text-slate-800 space-y-4">
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 rounded-2xl bg-emerald-600 text-white flex items-center justify-center font-bold shadow-xs">
+                  <CheckCircle2 className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="flex items-center space-x-2">
+                    <h4 className="font-extrabold text-sm text-slate-900">Active Disbursed Personal Loan</h4>
+                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-200 text-emerald-900 border border-emerald-300">
+                      Approved & Disbursed
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-600 mt-0.5">
+                    Loan A/C: <span className="font-mono font-bold text-slate-900">{loanApp.loanAccountNumber || 'LN-2026-ACTIVE'}</span>
+                  </p>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-4 bg-white/90 rounded-2xl border border-emerald-200/80 text-xs">
+                <div>
+                  <span className="text-[10px] uppercase font-bold text-slate-400 block">Disbursed Principal</span>
+                  <strong className="font-mono text-emerald-700 text-sm">₹{Number(loanApp.amount).toLocaleString('en-IN')}</strong>
+                </div>
+                <div>
+                  <span className="text-[10px] uppercase font-bold text-slate-400 block">Monthly EMI</span>
+                  <strong className="font-mono text-slate-900">₹{Number(loanApp.emi).toLocaleString('en-IN')}/mo</strong>
+                </div>
+                <div>
+                  <span className="text-[10px] uppercase font-bold text-slate-400 block">Tenure</span>
+                  <strong className="text-slate-900">{loanApp.tenureMonths} Months</strong>
+                </div>
+                <div>
+                  <span className="text-[10px] uppercase font-bold text-slate-400 block">EMI Repayment Date</span>
+                  <strong className="text-slate-900">5th of every month</strong>
+                </div>
+              </div>
+            </div>
+          )}
+
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
             {/* Loan EMI Configurator */}
             <div className="lg:col-span-7 bg-slate-50 rounded-3xl p-6 border border-slate-200 space-y-5">
@@ -669,12 +812,12 @@ const FinancialProducts = () => {
               </div>
 
               <button
-                onClick={handleDisburseLoan}
+                onClick={handleApplyLoan}
                 disabled={loanProcessing}
                 className="w-full py-3.5 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-sm transition shadow-lg shadow-indigo-600/25 flex items-center justify-center space-x-2 cursor-pointer"
               >
                 <Zap className="w-4 h-4" />
-                <span>{loanProcessing ? 'Disbursing to Savings Account...' : 'Instant Disburse to Savings Account'}</span>
+                <span>{loanProcessing ? 'Submitting Application to Bank Admin...' : 'Submit Loan Application for Bank Approval'}</span>
               </button>
             </div>
 
@@ -874,11 +1017,41 @@ const FinancialProducts = () => {
                   className="w-full py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold transition flex items-center justify-center space-x-1.5 cursor-pointer shadow-md shadow-purple-600/20"
                 >
                   <ShieldCheck className="w-3.5 h-3.5" />
-                  <span>Get Instant Digital Cover</span>
+                  <span>Apply for Insurance Cover</span>
                 </button>
               </div>
             ))}
           </div>
+
+          {/* User's Submitted Wealth & Insurance Applications */}
+          {userWealthApps.length > 0 && (
+            <div className="p-5 rounded-3xl bg-slate-50 border border-slate-200 space-y-3">
+              <div className="flex items-center justify-between">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700">My Wealth &amp; Insurance Applications</h4>
+                <span className="text-xs font-semibold text-slate-500">{userWealthApps.length} Total</span>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {userWealthApps.map((app) => (
+                  <div key={app.id} className="p-3.5 rounded-2xl bg-white border border-slate-200/80 text-xs flex justify-between items-center shadow-2xs">
+                    <div>
+                      <div className="flex items-center space-x-2">
+                        <span className="font-bold text-slate-900">{app.title}</span>
+                        <span className={`px-2 py-0.5 rounded-full text-[9px] font-extrabold border ${
+                          app.status === 'APPROVED' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200'
+                        }`}>
+                          {app.status === 'APPROVED' ? 'Approved & Active' : 'Awaiting Bank Review'}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-slate-500 mt-0.5">
+                        {app.productType === 'WEALTH_SIP' ? 'SIP Plan' : 'Policy'} • {app.cover}
+                        {app.folioOrPolicyNumber && <span className="font-mono ml-1 font-bold text-slate-700">• {app.folioOrPolicyNumber}</span>}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -934,19 +1107,19 @@ const FinancialProducts = () => {
             <div className="w-12 h-12 rounded-2xl bg-indigo-100 text-indigo-600 flex items-center justify-center mx-auto">
               <Zap className="w-6 h-6" />
             </div>
-            <h3 className="text-lg font-black text-slate-900">Loan Disbursed Instantly!</h3>
+            <h3 className="text-lg font-black text-slate-900">Loan Application Submitted!</h3>
             <p className="text-xs text-slate-500">
-              ₹{Number(loanSuccessData.amount).toLocaleString('en-IN')} has been directly credited to your primary savings account.
+              Your application for ₹{Number(loanSuccessData.amount).toLocaleString('en-IN')} has been sent to the Bank Administration queue for review.
             </p>
 
             <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 text-xs space-y-2 text-left">
               <div className="flex justify-between">
-                <span className="text-slate-500">Loan Account:</span>
+                <span className="text-slate-500">Application Ref:</span>
                 <strong className="font-mono text-slate-900">{loanSuccessData.loanAccNumber}</strong>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-500">Credited Amount:</span>
-                <strong className="font-mono text-emerald-600 font-bold">₹{Number(loanSuccessData.amount).toLocaleString('en-IN')}</strong>
+                <span className="text-slate-500">Requested Amount:</span>
+                <strong className="font-mono text-indigo-600 font-bold">₹{Number(loanSuccessData.amount).toLocaleString('en-IN')}</strong>
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-500">Monthly EMI:</span>
@@ -956,22 +1129,18 @@ const FinancialProducts = () => {
                 <span className="text-slate-500">Tenure:</span>
                 <strong className="text-slate-900">{loanSuccessData.tenureMonths} Months</strong>
               </div>
+              <div className="flex justify-between pt-1 border-t border-slate-200">
+                <span className="text-slate-500">Status:</span>
+                <span className="text-amber-700 font-bold">Awaiting Admin Approval</span>
+              </div>
             </div>
 
-            <div className="flex space-x-3">
-              <button
-                onClick={() => { setLoanSuccessData(null); navigate('/dashboard'); }}
-                className="flex-1 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition shadow-md"
-              >
-                Go to Dashboard
-              </button>
-              <button
-                onClick={() => setLoanSuccessData(null)}
-                className="flex-1 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition"
-              >
-                Close
-              </button>
-            </div>
+            <button
+              onClick={() => setLoanSuccessData(null)}
+              className="w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition shadow-md cursor-pointer"
+            >
+              Done
+            </button>
           </div>
         </div>
       )}
@@ -1033,7 +1202,7 @@ const FinancialProducts = () => {
                 onClick={() => handleStartSip(selectedFund)}
                 className="flex-1 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow-md"
               >
-                Confirm SIP
+                Confirm SIP Application
               </button>
             </div>
           </div>
@@ -1047,11 +1216,11 @@ const FinancialProducts = () => {
             <div className="w-12 h-12 rounded-2xl bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto">
               <CheckCircle2 className="w-6 h-6" />
             </div>
-            <h3 className="text-lg font-black text-slate-900">SIP Registered Successfully!</h3>
+            <h3 className="text-lg font-black text-slate-900">SIP Application Submitted!</h3>
             <p className="text-xs text-slate-500">
-              Your monthly mandate for {sipSuccessData.fundName} of ₹{sipSuccessData.amount.toLocaleString('en-IN')} has been scheduled.
+              Your monthly mandate request for {sipSuccessData.fundName} (₹{sipSuccessData.amount.toLocaleString('en-IN')}) has been sent for Bank Administration review.
             </p>
-            <p className="text-xs font-mono font-bold text-slate-600">Folio: {sipSuccessData.folio}</p>
+            <p className="text-xs font-mono font-bold text-slate-600">Ref: {sipSuccessData.appId || 'Awaiting Admin'}</p>
             <button
               onClick={() => setSipSuccessData(null)}
               className="w-full py-2.5 rounded-xl bg-slate-900 text-white text-xs font-bold"
@@ -1069,11 +1238,11 @@ const FinancialProducts = () => {
             <div className="w-12 h-12 rounded-2xl bg-purple-100 text-purple-600 flex items-center justify-center mx-auto">
               <ShieldCheck className="w-6 h-6" />
             </div>
-            <h3 className="text-lg font-black text-slate-900">Policy Issued Digitally!</h3>
+            <h3 className="text-lg font-black text-slate-900">Insurance Application Submitted!</h3>
             <p className="text-xs text-slate-500">
-              {insuranceSuccessData.policyName} with {insuranceSuccessData.cover} has been generated.
+              Your application for {insuranceSuccessData.policyName} ({insuranceSuccessData.cover}) is under Bank Underwriting review.
             </p>
-            <p className="text-xs font-mono font-bold text-slate-600">Policy No: {insuranceSuccessData.policyNumber}</p>
+            <p className="text-xs font-mono font-bold text-slate-600">Ref: {insuranceSuccessData.appId || 'Awaiting Underwriting'}</p>
             <button
               onClick={() => setInsuranceSuccessData(null)}
               className="w-full py-2.5 rounded-xl bg-purple-600 text-white text-xs font-bold"
