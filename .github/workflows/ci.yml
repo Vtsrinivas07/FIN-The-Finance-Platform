@@ -20,10 +20,11 @@ jobs:
           java-version: '20'
           distribution: 'temurin'
           cache: 'maven'
+          cache-dependency-path: 'backend/pom.xml'
 
       - name: Build with Maven & Run Tests
         working-directory: ./backend
-        run: mvn clean verify -B
+        run: mvn clean verify -B -U
 
   frontend-build:
     name: Build Frontend (React + Vite)
