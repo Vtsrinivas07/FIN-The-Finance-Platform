@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import api from '../../services/api';
 import {
@@ -32,8 +32,95 @@ import {
   Zap,
   Award,
   Coins,
-  Smartphone
+  Smartphone,
+  ChevronDown,
+  Check
 } from 'lucide-react';
+
+const CIF_AUTH_OPTIONS = [
+  { value: 'ACCOUNT_NUMBER', label: 'Account Number (CBS)' },
+  { value: 'CIF_USERNAME', label: 'Customer CIF / Username' },
+  { value: 'MOBILE', label: 'Registered Mobile Number' },
+  { value: 'PAN_TAX_ID', label: 'PAN / Tax ID' },
+  { value: 'EMAIL', label: 'Registered Email' }
+];
+
+const CIF_REASON_OPTIONS = [
+  { value: 'In-Branch Customer Servicing & Account Assistance', label: 'In-Branch Customer Servicing' },
+  { value: 'Dispute, Chargeback & Unauthorized Debit Investigation', label: 'Dispute & Chargeback Investigation' },
+  { value: 'Anti-Money Laundering (AML) & Suspicious Activity Review', label: 'AML / Suspicious Activity Review' },
+  { value: 'KYC & Customer Due Diligence (CDD) Verification', label: 'KYC Profile Verification' },
+  { value: 'Regulatory Authority & Court Order Compliance', label: 'Regulatory / Legal Order' }
+];
+
+const TX_SEARCH_OPTIONS = [
+  { value: 'REFERENCE_NUMBER', label: 'Transaction Reference (UTR / RRN)' },
+  { value: 'ACCOUNT_NUMBER', label: 'Customer Account Number' },
+  { value: 'CIF_USERNAME', label: 'Customer CIF / Username' }
+];
+
+const TX_REASON_OPTIONS = [
+  { value: 'Dispute Resolution & Chargeback Settlement', label: 'Dispute & Chargeback Resolution' },
+  { value: 'AML High-Value Screening & Fraud Check', label: 'AML Screening & Fraud Check' },
+  { value: 'Clearing & Settlement Reconciliation', label: 'Inter-Bank Clearing Reconciliation' },
+  { value: 'Failed Payment Investigation', label: 'Failed Payment Investigation' }
+];
+
+const CustomSelect = ({ value, onChange, options, className = '' }) => {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (ref.current && !ref.current.contains(e.target)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const selectedOption = options.find((opt) => opt.value === value) || options[0];
+
+  return (
+    <div className={`relative ${className}`} ref={ref}>
+      <button
+        type="button"
+        onClick={() => setOpen(!open)}
+        className="w-full flex items-center justify-between px-3.5 py-2.5 bg-slate-50 hover:bg-slate-100/80 border border-slate-200 hover:border-slate-300 rounded-2xl text-xs font-semibold text-slate-800 transition focus:outline-none focus:ring-2 focus:ring-brand-500 shadow-2xs text-left"
+      >
+        <span className="truncate">{selectedOption?.label || value}</span>
+        <ChevronDown className={`w-3.5 h-3.5 text-slate-400 ml-2 transition-transform duration-200 flex-shrink-0 ${open ? 'rotate-180 text-brand-600' : ''}`} />
+      </button>
+
+      {open && (
+        <div className="absolute z-50 left-0 right-0 mt-1.5 bg-white border border-slate-200 rounded-2xl shadow-xl p-1.5 space-y-0.5 max-h-60 overflow-y-auto animate-in fade-in zoom-in-95 duration-150 min-w-[200px]">
+          {options.map((opt) => {
+            const isSelected = opt.value === value;
+            return (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => {
+                  onChange(opt.value);
+                  setOpen(false);
+                }}
+                className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs text-left font-medium transition ${
+                  isSelected
+                    ? 'bg-brand-50 text-brand-700 font-bold'
+                    : 'text-slate-700 hover:bg-slate-50 hover:text-slate-900'
+                }`}
+              >
+                <span className="truncate">{opt.label}</span>
+                {isSelected && <Check className="w-3.5 h-3.5 text-brand-600 flex-shrink-0 ml-2" />}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+};
 
 const AdminDashboard = () => {
   const [metrics, setMetrics] = useState(null);
@@ -72,6 +159,9 @@ const AdminDashboard = () => {
     const tab = searchParams.get('tab') || 'overview';
     if (['overview', 'users', 'transactions', 'audit', 'kyc'].includes(tab)) {
       setActiveTab(tab);
+      if (tab === 'kyc') {
+        loadKycRequests();
+      }
     }
   }, [searchParams]);
 
@@ -524,17 +614,11 @@ const AdminDashboard = () => {
                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
                   Authentication Type
                 </label>
-                <select
+                <CustomSelect
                   value={cifAuthType}
-                  onChange={(e) => setCifAuthType(e.target.value)}
-                  className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-semibold text-slate-700 focus:border-brand-500 focus:bg-white focus:outline-none transition"
-                >
-                  <option value="ACCOUNT_NUMBER">Account Number (CBS)</option>
-                  <option value="CIF_USERNAME">Customer CIF / Username</option>
-                  <option value="MOBILE">Registered Mobile Number</option>
-                  <option value="PAN_TAX_ID">PAN / Tax ID</option>
-                  <option value="EMAIL">Registered Email</option>
-                </select>
+                  onChange={setCifAuthType}
+                  options={CIF_AUTH_OPTIONS}
+                />
               </div>
 
               <div className="sm:col-span-4">
@@ -557,17 +641,11 @@ const AdminDashboard = () => {
                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
                   Compliance Justification
                 </label>
-                <select
+                <CustomSelect
                   value={cifReason}
-                  onChange={(e) => setCifReason(e.target.value)}
-                  className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs text-slate-700 focus:border-brand-500 focus:bg-white focus:outline-none transition"
-                >
-                  <option value="In-Branch Customer Servicing & Account Assistance">In-Branch Customer Servicing</option>
-                  <option value="Dispute, Chargeback & Unauthorized Debit Investigation">Dispute & Chargeback Investigation</option>
-                  <option value="Anti-Money Laundering (AML) & Suspicious Activity Review">AML / Suspicious Activity Review</option>
-                  <option value="KYC & Customer Due Diligence (CDD) Verification">KYC Profile Verification</option>
-                  <option value="Regulatory Authority & Court Order Compliance">Regulatory / Legal Order</option>
-                </select>
+                  onChange={setCifReason}
+                  options={CIF_REASON_OPTIONS}
+                />
               </div>
 
               <div className="sm:col-span-2 flex items-end">
@@ -616,17 +694,11 @@ const AdminDashboard = () => {
                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
                   Authentication Credential Type
                 </label>
-                <select
+                <CustomSelect
                   value={cifAuthType}
-                  onChange={(e) => setCifAuthType(e.target.value)}
-                  className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-semibold text-slate-700 focus:border-brand-500 focus:bg-white focus:outline-none transition"
-                >
-                  <option value="ACCOUNT_NUMBER">Account Number (CBS)</option>
-                  <option value="CIF_USERNAME">Customer CIF / Username</option>
-                  <option value="MOBILE">Registered Mobile Number</option>
-                  <option value="PAN_TAX_ID">PAN / Government Tax ID</option>
-                  <option value="EMAIL">Registered Email Address</option>
-                </select>
+                  onChange={setCifAuthType}
+                  options={CIF_AUTH_OPTIONS}
+                />
               </div>
 
               <div className="sm:col-span-4">
@@ -649,17 +721,11 @@ const AdminDashboard = () => {
                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
                   Regulatory Audit Purpose
                 </label>
-                <select
+                <CustomSelect
                   value={cifReason}
-                  onChange={(e) => setCifReason(e.target.value)}
-                  className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs text-slate-700 focus:border-brand-500 focus:bg-white focus:outline-none transition"
-                >
-                  <option value="In-Branch Customer Servicing & Account Assistance">In-Branch Customer Servicing</option>
-                  <option value="Dispute, Chargeback & Unauthorized Debit Investigation">Dispute & Chargeback Investigation</option>
-                  <option value="Anti-Money Laundering (AML) & Suspicious Activity Review">AML / Suspicious Activity Review</option>
-                  <option value="KYC & Customer Due Diligence (CDD) Verification">KYC Due Diligence (CDD)</option>
-                  <option value="Regulatory Authority & Court Order Compliance">Regulatory / Court Order</option>
-                </select>
+                  onChange={setCifReason}
+                  options={CIF_REASON_OPTIONS}
+                />
               </div>
 
               <div className="sm:col-span-2 flex items-end">
@@ -1014,15 +1080,11 @@ const AdminDashboard = () => {
                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
                   Search Identifier Rail
                 </label>
-                <select
+                <CustomSelect
                   value={txSearchType}
-                  onChange={(e) => setTxSearchType(e.target.value)}
-                  className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-semibold text-slate-700 focus:border-brand-500 focus:bg-white focus:outline-none transition"
-                >
-                  <option value="REFERENCE_NUMBER">Transaction Reference (UTR / RRN)</option>
-                  <option value="ACCOUNT_NUMBER">Customer Account Number</option>
-                  <option value="CIF_USERNAME">Customer CIF / Username</option>
-                </select>
+                  onChange={setTxSearchType}
+                  options={TX_SEARCH_OPTIONS}
+                />
               </div>
 
               <div className="sm:col-span-4">
@@ -1045,16 +1107,11 @@ const AdminDashboard = () => {
                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
                   Investigation Purpose
                 </label>
-                <select
+                <CustomSelect
                   value={txReason}
-                  onChange={(e) => setTxReason(e.target.value)}
-                  className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs text-slate-700 focus:border-brand-500 focus:bg-white focus:outline-none transition"
-                >
-                  <option value="Dispute Resolution & Chargeback Settlement">Dispute & Chargeback Resolution</option>
-                  <option value="AML High-Value Screening & Fraud Check">AML Screening & Fraud Check</option>
-                  <option value="Clearing & Settlement Reconciliation">Inter-Bank Clearing Reconciliation</option>
-                  <option value="Failed Payment Investigation">Failed Payment Investigation</option>
-                </select>
+                  onChange={setTxReason}
+                  options={TX_REASON_OPTIONS}
+                />
               </div>
 
               <div className="sm:col-span-2 flex items-end">

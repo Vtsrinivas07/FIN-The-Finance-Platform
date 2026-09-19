@@ -14,7 +14,8 @@ import {
   LogOut,
   Building2,
   X,
-  Sparkles
+  Sparkles,
+  ShieldCheck
 } from 'lucide-react';
 
 const Sidebar = ({ isOpen, onClose }) => {
@@ -43,6 +44,7 @@ const Sidebar = ({ isOpen, onClose }) => {
     { name: 'Customer CIF Inquiry', path: '/admin?tab=users', icon: Users },
     { name: 'Clearing & AML Inquiry', path: '/admin?tab=transactions', icon: ArrowLeftRight },
     { name: 'Security & Audit Trail', path: '/admin?tab=audit', icon: ShieldAlert },
+    { name: 'KYC Approvals', path: '/admin?tab=kyc', icon: ShieldCheck },
     { name: 'System Settings', path: '/settings', icon: Settings },
   ];
 
