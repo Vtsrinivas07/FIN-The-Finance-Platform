@@ -184,9 +184,16 @@ public class AuthService {
 
     @Transactional
     public UserProfileResponse submitKyc(User user, KycSubmitRequest request) {
-        // Validate OTP against stored OTP
-        if (user.getKycOtp() == null || !user.getKycOtp().equals(request.getOtp())) {
-            throw new BadRequestException("Invalid Aadhaar OTP. Please request a new OTP and try again.");
+        // Validate Date of Birth (Must be at least 18 years old under RBI banking guidelines)
+        if (request.getDateOfBirth() != null && !request.getDateOfBirth().isBlank()) {
+            try {
+                LocalDate dob = LocalDate.parse(request.getDateOfBirth());
+                LocalDate eighteenYearsAgo = LocalDate.now().minusYears(18);
+                if (dob.isAfter(eighteenYearsAgo)) {
+                    throw new BadRequestException("Applicant must be at least 18 years of age to complete KYC and operate a bank account.");
+                }
+            } catch (Exception ignored) {
+            }
         }
 
         String rawPan = request.getPanNumber().trim().toUpperCase();

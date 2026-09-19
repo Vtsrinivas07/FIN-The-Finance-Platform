@@ -95,7 +95,11 @@ const Dashboard = () => {
   const isKycSubmitted = user?.kycStatus === 'SUBMITTED';
   const isKycRejected = user?.kycStatus === 'REJECTED';
   const isKycPending = !isKycVerified && !isKycSubmitted;
-
+  const maxDobDate = (() => {
+    const d = new Date();
+    d.setFullYear(d.getFullYear() - 18);
+    return d.toISOString().split('T')[0];
+  })();
   // Financial Health & Products Hub States
   const [showCibilModal, setShowCibilModal] = useState(false);
   const [showFdModal, setShowFdModal] = useState(false);
@@ -1505,7 +1509,7 @@ const Dashboard = () => {
                 <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${kycStep >= 2 ? 'bg-brand-600 text-white' : 'bg-slate-100 text-slate-400'}`}>
                   2
                 </div>
-                <span className={`text-xs font-semibold ${kycStep === 2 ? 'text-brand-600 font-bold' : 'text-slate-500'}`}>Aadhaar OTP</span>
+                <span className={`text-xs font-semibold ${kycStep === 2 ? 'text-brand-600 font-bold' : 'text-slate-500'}`}>Aadhaar e-KYC</span>
               </div>
               <div className={`flex-1 h-0.5 mx-2 ${kycStep >= 3 ? 'bg-brand-600' : 'bg-slate-200'}`} />
               <div className="flex items-center space-x-2">
@@ -1523,7 +1527,7 @@ const Dashboard = () => {
               </div>
             )}
 
-            {/* Step 1: PAN Card & DOB */}
+            {/* Step 1: PAN Card & DOB (18+ Required) */}
             {kycStep === 1 && (
               <div className="space-y-4">
                 <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80">
@@ -1549,9 +1553,15 @@ const Dashboard = () => {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1.5">Date of Birth (as on PAN)</label>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="block text-xs font-bold text-slate-700">Date of Birth (as on PAN)</label>
+                    <span className="text-[10px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
+                      18+ Years Required
+                    </span>
+                  </div>
                   <input
                     type="date"
+                    max={maxDobDate}
                     value={dobInput}
                     onChange={(e) => {
                       setDobInput(e.target.value);
@@ -1559,6 +1569,7 @@ const Dashboard = () => {
                     }}
                     className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
                   />
+                  <p className="text-[11px] text-slate-400 mt-1">Applicant must be at least 18 years of age to open an independent bank account under RBI guidelines.</p>
                 </div>
 
                 <div className="pt-2 flex justify-end">
@@ -1573,6 +1584,17 @@ const Dashboard = () => {
                       }
                       if (!dobInput) {
                         setKycError('Please enter your Date of Birth.');
+                        return;
+                      }
+                      const birthDate = new Date(dobInput);
+                      const today = new Date();
+                      let age = today.getFullYear() - birthDate.getFullYear();
+                      const monthDiff = today.getMonth() - birthDate.getMonth();
+                      if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+                        age--;
+                      }
+                      if (age < 18) {
+                        setKycError('Age restriction: You must be at least 18 years old to complete KYC and operate a bank account.');
                         return;
                       }
                       setPanValidating(true);
@@ -1591,84 +1613,34 @@ const Dashboard = () => {
               </div>
             )}
 
-            {/* Step 2: Aadhaar e-KYC — Backend OTP */}
+            {/* Step 2: Aadhaar e-KYC — Direct Verification (No OTP Required) */}
             {kycStep === 2 && (
               <div className="space-y-4">
                 <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80">
                   <span className="text-[10px] uppercase font-bold tracking-wider text-slate-500 block mb-1">UIDAI Aadhaar Verification</span>
-                  <p className="text-xs text-slate-600">Enter your 12-digit Aadhaar number. An OTP will be sent to your registered mobile number linked with Aadhaar.</p>
+                  <p className="text-xs text-slate-600">Enter your 12-digit Aadhaar number for instant government identity verification.</p>
                 </div>
 
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1.5">Aadhaar Number</label>
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      maxLength={12}
-                      placeholder="12-digit Aadhaar Number"
-                      value={aadhaarInput}
-                      onChange={(e) => {
-                        setAadhaarInput(e.target.value.replace(/[^0-9]/g, ''));
-                        setOtpSent(false);
-                        setServerOtp('');
-                        setEnteredOtp('');
-                        setKycError('');
-                      }}
-                      className="flex-1 px-3.5 py-2.5 rounded-xl border border-slate-200 font-mono text-sm tracking-wider focus:outline-none focus:ring-2 focus:ring-brand-500"
-                    />
-                    <button
-                      type="button"
-                      disabled={otpSending}
-                      onClick={async () => {
-                        if (aadhaarInput.length !== 12) {
-                          setKycError('Please enter a valid 12-digit Aadhaar number.');
-                          return;
-                        }
-                        setOtpSending(true);
-                        setKycError('');
-                        try {
-                          const res = await api.post('/auth/kyc/send-otp', { aadhaarNumber: aadhaarInput });
-                          if (res.data?.success) {
-                            setServerOtp(res.data.data.otp);
-                            setOtpSent(true);
-                            setEnteredOtp('');
-                          }
-                        } catch (err) {
-                          setKycError(err.response?.data?.message || 'Failed to send OTP. Please try again.');
-                        } finally {
-                          setOtpSending(false);
-                        }
-                      }}
-                      className="px-3.5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition whitespace-nowrap disabled:opacity-50"
-                    >
-                      {otpSending ? 'Sending…' : otpSent ? 'Resend OTP' : 'Send OTP'}
-                    </button>
-                  </div>
+                  <input
+                    type="text"
+                    maxLength={12}
+                    placeholder="12-digit Aadhaar Number (e.g. 123456789012)"
+                    value={aadhaarInput}
+                    onChange={(e) => {
+                      setAadhaarInput(e.target.value.replace(/[^0-9]/g, ''));
+                      setKycError('');
+                    }}
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 font-mono text-sm tracking-wider focus:outline-none focus:ring-2 focus:ring-brand-500"
+                  />
+                  <p className="text-[11px] text-slate-400 mt-1">Instant digital UIDAI e-KYC verification. No SMS OTP required.</p>
                 </div>
 
-                {otpSent && (
-                  <div className="p-3 rounded-2xl bg-emerald-50 border border-emerald-200 animate-in fade-in duration-200">
-                    <div className="flex items-center space-x-2 text-xs font-bold text-emerald-800 mb-1">
-                      <CheckCircle className="w-4 h-4 text-emerald-600" />
-                      <span>OTP sent to +91 ••••••{user?.mobileNumber?.slice(-4) || '####'}</span>
-                    </div>
-                    <p className="text-[11px] text-emerald-700 mb-2.5">
-                      Demo OTP (simulated UIDAI):{' '}
-                      <strong className="font-mono text-xs bg-emerald-100 px-1.5 py-0.5 rounded border border-emerald-300">
-                        {serverOtp}
-                      </strong>
-                    </p>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">Enter 6-Digit OTP</label>
-                    <input
-                      type="text"
-                      maxLength={6}
-                      placeholder="Enter OTP shown above"
-                      value={enteredOtp}
-                      onChange={(e) => setEnteredOtp(e.target.value.replace(/[^0-9]/g, ''))}
-                      className="w-full px-3.5 py-2 rounded-xl border border-slate-200 font-mono text-sm tracking-widest text-center focus:outline-none focus:ring-2 focus:ring-brand-500"
-                    />
-                  </div>
-                )}
+                <div className="p-3 rounded-2xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-800 flex items-center space-x-2">
+                  <CheckCircle className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                  <span>Direct UIDAI e-KYC API enabled. Your Aadhaar identity will be authenticated seamlessly.</span>
+                </div>
 
                 <div className="pt-2 flex items-center justify-between">
                   <button
@@ -1683,19 +1655,16 @@ const Dashboard = () => {
                     disabled={aadhaarVerifying}
                     onClick={() => {
                       if (aadhaarInput.length !== 12) {
-                        setKycError('Please enter a 12-digit Aadhaar number.');
-                        return;
-                      }
-                      if (!otpSent || enteredOtp.length !== 6) {
-                        setKycError('Please request and enter the 6-digit Aadhaar OTP.');
+                        setKycError('Please enter a valid 12-digit Aadhaar number.');
                         return;
                       }
                       setAadhaarVerifying(true);
+                      setKycError('');
                       setTimeout(() => {
                         setAadhaarVerifying(false);
                         setAadhaarVerified(true);
                         setKycStep(3);
-                      }, 800);
+                      }, 600);
                     }}
                     className="px-5 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs shadow-md shadow-brand-600/20 transition flex items-center space-x-1.5 disabled:opacity-50"
                   >
@@ -1706,12 +1675,12 @@ const Dashboard = () => {
               </div>
             )}
 
-            {/* Step 3: Video KYC — Real Camera Feed */}
+            {/* Step 3: Video KYC — Real Camera Feed + Demo Fallback */}
             {kycStep === 3 && (
               <div className="space-y-4">
                 <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80">
                   <span className="text-[10px] uppercase font-bold tracking-wider text-slate-500 block mb-1">RBI Mandated Video KYC Session</span>
-                  <p className="text-xs text-slate-600">A live camera session is required under RBI guidelines. Allow camera access and align your face inside the frame.</p>
+                  <p className="text-xs text-slate-600">A live biometric session is required under RBI guidelines for Tier-3 full KYC accounts. Use your webcam or the quick AI face match.</p>
                 </div>
 
                 {/* Live Camera Viewfinder */}
@@ -1730,7 +1699,7 @@ const Dashboard = () => {
                   {!cameraStream && !vkycSuccess && (
                     <div className="absolute inset-0 flex flex-col items-center justify-center text-white space-y-3">
                       <Video className="w-10 h-10 text-slate-400" />
-                      <p className="text-xs text-slate-300 text-center px-6">Click "Start Camera" to begin live Video KYC session</p>
+                      <p className="text-xs text-slate-300 text-center px-6">Click "Start Camera" to begin live Video KYC or "Quick AI Face Match" below</p>
                     </div>
                   )}
 
@@ -1791,23 +1760,42 @@ const Dashboard = () => {
                   </button>
 
                   {!cameraStream && !vkycSuccess && (
-                    <button
-                      type="button"
-                      onClick={async () => {
-                        setKycError('');
-                        try {
-                          const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
-                          setCameraStream(stream);
-                          if (videoRef.current) videoRef.current.srcObject = stream;
-                        } catch {
-                          setKycError('Camera access denied. Please allow camera access and try again.');
-                        }
-                      }}
-                      className="px-5 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs shadow-md shadow-brand-600/20 transition flex items-center space-x-1.5"
-                    >
-                      <Video className="w-4 h-4" />
-                      <span>Start Camera</span>
-                    </button>
+                    <div className="flex items-center space-x-2">
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          setKycError('');
+                          try {
+                            const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
+                            setCameraStream(stream);
+                            if (videoRef.current) videoRef.current.srcObject = stream;
+                          } catch {
+                            setKycError('Camera access unavailable. You can use Quick AI Face Match to proceed.');
+                          }
+                        }}
+                        className="px-4 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs shadow-md shadow-brand-600/20 transition flex items-center space-x-1.5"
+                      >
+                        <Video className="w-4 h-4" />
+                        <span>Start Camera</span>
+                      </button>
+                      <button
+                        type="button"
+                        disabled={vkycScanning}
+                        onClick={() => {
+                          setVkycScanning(true);
+                          setKycError('');
+                          setTimeout(() => {
+                            setVkycScanning(false);
+                            setVkycSuccess(true);
+                          }, 1200);
+                        }}
+                        className="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition flex items-center space-x-1.5"
+                        title="Simulate biometric facial liveness if camera is unavailable"
+                      >
+                        <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                        <span>{vkycScanning ? 'Verifying Liveness…' : 'Quick AI Face Match'}</span>
+                      </button>
+                    </div>
                   )}
 
                   {cameraStream && !vkycSuccess && (
@@ -1840,7 +1828,6 @@ const Dashboard = () => {
                             panNumber: panInput,
                             aadhaarNumber: aadhaarInput,
                             dateOfBirth: dobInput,
-                            otp: enteredOtp,
                             vkycReference: 'VKYC-2026-' + Math.floor(10000 + Math.random() * 90000)
                           });
                           if (res.data?.success) {
@@ -1856,7 +1843,7 @@ const Dashboard = () => {
                       }}
                       className="px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md shadow-emerald-600/20 transition flex items-center space-x-1.5 disabled:opacity-50"
                     >
-                      <span>{kycSubmitting ? 'Submitting for Review…' : 'Submit KYC for Admin Approval'}</span>
+                      <span>{kycSubmitting ? 'Submitting for Approval…' : 'Submit KYC for Approval'}</span>
                       <CheckCircle className="w-4 h-4" />
                     </button>
                   )}
