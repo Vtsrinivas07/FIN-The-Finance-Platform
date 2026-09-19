@@ -166,7 +166,7 @@ const SupportChatModal = () => {
           </div>
 
           {/* Quick FAQ Chips */}
-          <div className="px-3 py-2 bg-white border-t border-slate-100 overflow-x-auto scrollbar-none flex items-center space-x-1.5">
+          <div className="px-3 py-2 bg-white border-t border-slate-100 overflow-x-auto no-scrollbar flex items-center space-x-1.5">
             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex-shrink-0 flex items-center">
               <HelpCircle className="w-3 h-3 mr-1" /> Quick:
             </span>
