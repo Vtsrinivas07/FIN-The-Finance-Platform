@@ -56,7 +56,9 @@ public class SecurityConfig {
                     "/swagger-ui.html",
                     "/h2-console/**",
                     "/api/support/faqs/**",
-                    "/api/support/chat"
+                    "/api/support/chat",
+                    "/healthz",
+                    "/api/health"
                 ).permitAll()
                 .requestMatchers("/api/admin/**").hasAuthority("ROLE_ADMIN")
                 .anyRequest().authenticated()
